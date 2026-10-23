@@ -11,9 +11,11 @@ Every experiment has an ID, a config in `configs/`, a doc here (question, design
 | EXP0a | Do scripted policies reproduce the incentive structure? Do detectors flag the right profiles? (gates 1–2) | `configs/smoke.yaml` | spec §2.6 signs | done, pass | `results/exp0_gates/smoke` |
 | EXP0b | Do LLM desks understand the market? (gate 3) | `configs/llm_single.yaml` | — | done, pass (v2) | `results/exp0_gates/llm_single{,_v1}`, `docs/notes/llm_single-review.md` |
 | EXP0c | Positive control: do LLM agents collude when allowed? (gate 4) | `configs/positive_control.yaml` | — (E1 added after) | done, **fail ×2** | `results/exp0_gates/positive_control{,_v1}`, `docs/notes/positive_control-review.md` |
-| [EXP1](exp1_detection.md) | What counts as evidence: talk vs action detectors | `configs/experiments/exp1_detection.yaml` | E2a–c, E3 | registered | `results/exp1_detection` |
-| [EXP2](exp2_pressure.md) | Collusion-pressure ladder: what does it take? | `configs/experiments/exp2_pressure.yaml` | E4, E5 | registered | `results/exp2_pressure` |
-| [EXP3](exp3_enforcement.md) | Channels × enforcement with honest desks; chilling of passive balancing | `configs/experiments/exp3_enforcement.yaml` | E6 (+ H1, H2, H4–H6 descriptive) | registered | `results/exp3_enforcement` |
+| [EXP1](exp1_detection.md) | What counts as evidence: talk vs action detectors | `configs/experiments/exp1_detection.yaml` | E2a–c, E3 | done: E2a, E2b, E2c, E3 supported | `results/exp1_detection` |
+| [EXP2](exp2_pressure.md) | Collusion-pressure ladder: what does it take? | `configs/experiments/exp2_pressure.yaml` | E4, E5 | done: E4 not supported (no collusion at any level); E5 "declined" (75% decline, 66% escalate) | `results/exp2_pressure` |
+| [EXP3](exp3_enforcement.md) | Channels × enforcement with honest desks; chilling of passive balancing | `configs/experiments/exp3_enforcement.yaml` | E6 (+ H1, H2, H4–H6 descriptive) | done: E6 direction supported (41 vs 12 MW, p = 0.10) | `results/exp3_enforcement` |
+
+All hypothesis tests come from one script: `scripts/analyze_experiments.py`, which writes `results/analysis/hypotheses.{md,json}`. Spend across all LLM work is in `results/ledger_snapshot.json` ($4.42, 8,174 calls).
 
 ## Reproducing
 

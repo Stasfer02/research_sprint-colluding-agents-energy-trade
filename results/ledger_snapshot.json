@@ -1,0 +1,13 @@
+{
+  "spent_usd": 4.422970299999998,
+  "calls": 8174,
+  "by_model": {
+    "claude-haiku-5-5": {
+      "input_tokens": 29034338,
+      "output_tokens": 3039073,
+      "cost_usd": 4.422970299999998,
+      "calls": 8174
+    }
+  },
+  "updated": "2026-10-23T21:55:26+00:00"
+}

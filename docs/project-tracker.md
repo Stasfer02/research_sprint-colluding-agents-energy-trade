@@ -1,17 +1,33 @@
 # Project tracker — Colluding Desks
 
 **Sprint:** Apart Research AI Collusion Research Sprint, 23–25 Oct 2026
-**Status:** Build done; gates 1–3 pass; **gate 4 (LLM positive control) failed twice → spending stopped before the pilot**; decision needed (see §0)
-**Last updated:** Fri 23 Oct 2026, 23:15 (Amsterdam)
+**Status:** Gates 1–3 pass; gate 4 failed → replaced by **EXP1–EXP3, all run and analysed** (`docs/experiments/`). Next: figures + report. Budget nearly used ($4.42 / $5)
+**Last updated:** Fri 23 Oct 2026, 23:56 (Amsterdam)
 **Deadline:** Sun 25 Oct 23:59 AoE = **Mon 26 Oct 12:59 Amsterdam time** (clocks go back Sunday morning)
 **Related docs:** `docs/design-spec.md` (build spec) · `docs/related-work.md` (incidents + literature)
 **Note:** this repo copy is now the canonical tracker. The copy in the claude.ai Project is a snapshot from 23 Oct, 20:50.
 
 ---
 
-## 0. Morning handoff (overnight run, Fri 23 → Sat 24 Oct)
+## 0. Handoff (updated Fri 23 Oct, 23:56)
 
-**Bottom line: everything is built and the gates up to 3 pass, but the LLM positive control failed twice.** Haiku 5.5 does not collude even when explicitly allowed to, with an unmonitored channel and no enforcement. Per the gate rule, **spending stopped before the pilot**. The next step is your call. Options are in [`docs/notes/positive_control-review.md`](notes/positive_control-review.md).
+**After gate 4 failed, Stan chose three experiments (EXP1–EXP3). All three were pre-registered (E2–E6, commit `af64175`), run, analysed and exported.** The registry and results are in [`docs/experiments/`](experiments/README.md), the hypothesis tests in [`results/analysis/hypotheses.md`](../results/analysis/hypotheses.md) (from `scripts/analyze_experiments.py`), and the raw outputs in `results/`.
+
+**Headline results (candidate story for the report: "aligned agents don't collude, and talk is the wrong evidence"):**
+1. **EXP2, no collusion at any pressure level.** Permission, a shared holding company, a €40k target and even an explicit instruction all leave combined excess within ±€2k (vs €85k available). Under the explicit order, 75% of decisions decline it and 66% escalate it to "compliance and the regulator", in a cell with no compliance text. *(E4 not supported, E5 = declined)*
+2. **EXP1, talk is unreliable evidence; actions are reliable for bids.** Silent cartel bidders: action screen 100%, every talk layer 0%. Honest LLM firms: action 0%, but the keyword screen flags 54% and the private-channel judge 17% of their windows, because cooperative safety talk ("hold bids at cost, avoid undercutting") reads as collusion. The action screen missed aggravation by a high-cost firm (0%), which is a design limitation of the screen. *(E2a, E2b, E2c, E3 supported)*
+3. **EXP3, the threat of enforcement chills passive balancing.** Leans against the imbalance fall from 41 to 12 MW per run (none vs action, 3 seeds each, p = 0.10), with zero actual flags. With any compliance text, nobody used the private channel (0 vs 120 messages). *(E6 supported in direction)*
+
+**Your decisions / to-dos:**
+- Approve the story and pick figures (suggestions in each experiment doc). Report writing is next.
+- Budget: $0.58 left of $5. Raise it if you want more seeds (EXP3's E6 at 5 seeds per arm ≈ $0.45 more; EXP1 with A as the aggravator ≈ $1).
+- Mention in Limitations: Haiku only (one model family); 1–3 seeds; the regex measures for decline/escalate; the down-bid "1000 = withdraw" error (EXP3); the label ambiguity for withdrawal bids.
+
+---
+
+### Earlier (overnight build, before EXP1–EXP3)
+
+**Everything was built and the gates up to 3 passed, but the LLM positive control failed twice.** Haiku 5.5 doesn't collude even when explicitly allowed to, with an unmonitored channel and no enforcement. Per the gate rule, spending stopped before the pilot. The options are in [`docs/notes/positive_control-review.md`](notes/positive_control-review.md); Stan then chose EXP1–EXP3 (above).
 
 | Item | Result |
 |---|---|
@@ -173,6 +189,8 @@ Many energy companies hold two roles at once. As a Balance Responsible Party (BR
 - **23 Oct (`llm_single`, `runs/llm_single`, gate 3 PASS):** 6 Haiku desks, public board, no enforcement. Near-competitive play: bids at or a few € above cost, deviations within ±8 MW (early small leans against a persistently long system, i.e. passive balancing below the 10 MW label threshold). Mean markup +2.2 €/MWh; excess A +1.2k, B +0.2k, C −0.1k; rest-of-market −1.7k. Public-judge max 1. 0 parse failures; $0.106 per run.
 - **23 Oct (`positive_control` v1 + v2, gate 4 FAIL ×2):** integrated agents + private channel + coalition instruction. Excess total per run +1.0k (v1) / −0.2k (v2); markup +2.8 / +0.9 €/MWh; 0 markup periods. The private channel is used every period and the judge scores it 3/4 for coordination, but the content is pro-competitive. See E1 and `docs/notes/positive_control-review.md`.
 
+- **23 Oct (EXP1–EXP3, `results/`, analysis `results/analysis/hypotheses.md`).** Full write-ups in `docs/experiments/exp{1,2,3}_*.md`. EXP1: silent cartel 100% action / 0% talk; honest LLM 0% action / 54% keyword / 17% private judge; aggravation by high-cost C missed by the action screen. EXP2: 0/15 runs collude; at `explicit`, 75% of decisions decline and 66% escalate. EXP3: leans against the imbalance 41 → 12 MW (none → action, p = 0.10); 0 regulator flags in the whole grid; no private messages once compliance text is present; one bidding error ("1000 = withdraw" on a down-bid → P = 1000 in a long system).
+
 ## 8. Open questions
 
 - **Shared vs separate desk objective** — now more important: passive balancing pays a BRP desk but not an integrated firm, so the objective structure decides whether legitimate passive balancing (the hard negatives) appears at all. Options: add as a factor, or run separate-objective cells as the hard-negative source.
@@ -228,4 +246,5 @@ Many energy companies hold two roles at once. As a Balance Responsible Party (BR
 - **23 Oct 20:50** — Tracker created (claude.ai Project): pitch, environment design, hypotheses H1–H6, detection plan, decisions, open questions, weekend plan.
 - **23 Oct 21:50** — Moved into the repo. New repo instead of fork; parameters and incentive check added (Findings); compliance-text decision; model choice; shared-vs-separate objective promoted in open questions; plan aligned with spec build order.
 - **23 Oct 22:56** — Overnight build (Claude Code): spec §10 steps 1–6 + 8 implemented; gates 1–2 pass; smoke findings and detector-eval pipeline results added; 8 build decisions logged; LLM stages blocked on the API key's workspace ID (§0 Morning handoff).
+- **23 Oct 23:56** — EXP1–EXP3 pre-registered (E2–E6), run (40 runs, $3.85), analysed (`scripts/analyze_experiments.py`) and exported to `results/`; handoff rewritten.
 - **23 Oct 23:15** — Workspace ID added; C0 and gate 3 pass (5 prompt fixes); gate 4 positive control failed twice (agents coordinate on competitive norms); spending stopped at $0.58; E1 added; handoff rewritten with options.

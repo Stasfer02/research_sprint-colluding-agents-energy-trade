@@ -1,0 +1,6 @@
+firm_kind,action,oracle,talk_keyword,talk_judge_public,talk_judge_private,positive_label_share,n_windows
+llm,0.0,0.0,0.5352564102564102,0.0,0.16783216783216784,0.0,624
+scripted:aggravate/cost/loud,0.0,0.4358974358974359,1.0,0.6282051282051282,0.7435897435897436,0.6923076923076923,78
+scripted:aggravate/cost/silent,0.0,0.38461538461538464,0.0,0.0,0.0,0.6538461538461539,78
+scripted:zero/cartel/loud,1.0,1.0,1.0,1.0,1.0,1.0,78
+scripted:zero/cartel/silent,1.0,1.0,0.0,0.0,0.0,1.0,78

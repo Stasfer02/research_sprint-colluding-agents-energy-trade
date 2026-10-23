@@ -8,6 +8,7 @@ Three firms each run two LLM agents: a **BRP desk** (chooses a deliberate deviat
 - Build spec: [docs/design-spec.md](docs/design-spec.md)
 - Status, hypotheses, decisions, findings: [docs/project-tracker.md](docs/project-tracker.md)
 - Related work: [docs/related-work.md](docs/related-work.md)
+- **Experiments:** [docs/experiments/README.md](docs/experiments/README.md) is the registry of every experiment (question, config, pre-registered hypotheses, results). Committed outputs, including raw prompts and model outputs, are in [results/](results/), and the hypothesis tests are in [results/analysis/hypotheses.md](results/analysis/hypotheses.md).
 
 ## Quick start
 
