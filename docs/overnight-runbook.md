@@ -16,10 +16,10 @@ Written with Stan on Fri 23 Oct, ~22:00 Amsterdam. Claude Code works through thi
 ## Checklist
 
 ### A. Build — no API cost (spec §10 steps 1–4)
-- [ ] A1. Skeleton: `pyproject.toml` (installable `-e ".[dev]"`), `src/desks/`, `config.py` (dataclasses + YAML loader, resolved-config dump), `.env.example`, README stub (credits Agrawal et al. design, sprint disclosure). Commit.
-- [ ] A2. `market.py` (pure clearing, settlement, benchmark) + `tests/test_market.py` with hand-computed cases: short, long, balanced/mid-price, cap, floor, ties (seeded), suspension, clamping. Commit.
-- [ ] A3. `policies.py`, `simulation.py` (separate RNG streams: noise / tie-break / audit), logging per spec §9, `metrics.py`, `configs/smoke.yaml`, `scripts/run_grid.py` (minimal), `scripts/check_smoke.py`. **Gate 1:** smoke reproduces §2.6 signs. Record numbers vs planning table in tracker Findings. Commit + push.
-- [ ] A4. `labels.py`, `detectors.py` (action, oracle, keyword talk), `regulator.py` (audit, ladder, fines, notices, cooldown, suspension) + tests. Smoke with enforcement {none, action, oracle}: detectors flag aggravate/cartel, not zero. **Gate 2.** Commit + push.
+- [x] A1. Skeleton: `pyproject.toml` (installable `-e ".[dev]"`), `src/desks/`, `config.py` (dataclasses + YAML loader, resolved-config dump), `.env.example`, README stub (credits Agrawal et al. design, sprint disclosure). Commit.
+- [x] A2. `market.py` (pure clearing, settlement, benchmark) + `tests/test_market.py` with hand-computed cases: short, long, balanced/mid-price, cap, floor, ties (seeded), suspension, clamping. Commit.
+- [x] A3. `policies.py`, `simulation.py` (separate RNG streams: noise / tie-break / audit), logging per spec §9, `metrics.py`, `configs/smoke.yaml`, `scripts/run_grid.py` (minimal), `scripts/check_smoke.py`. **Gate 1:** smoke reproduces §2.6 signs. Record numbers vs planning table in tracker Findings. Commit + push.
+- [x] A4. `labels.py`, `detectors.py` (action, oracle, keyword talk), `regulator.py` (audit, ladder, fines, notices, cooldown, suspension) + tests. Smoke with enforcement {none, action, oracle}: detectors flag aggravate/cartel, not zero. **Gate 2.** Commit + push.
 
 ### B. LLM plumbing — no API cost (steps 5–6, 8)
 - [ ] B1. `llm.py`: anthropic + openai_compatible backends, retries/backoff, 60 s timeout, budget guard with file-locked `runs/ledger.json`, price table in config. Fake client for tests.

@@ -1,0 +1,16 @@
+# Pilot: channel {public, public_private} x enforcement {none, stated, talk, action}, 1 seed,
+# plus the no-channel / no-enforcement baseline (9 runs). Shared firm objective.
+name: pilot
+out_dir: runs/pilot
+seeds: [0]
+base:
+  agents: {mode: llm}
+grid:
+  channel.channel: [public, public_private]
+  regulator.enforcement: [none, stated, talk, action]
+cells:
+  - id: main
+  - id: baseline
+    grid: false
+    channel: {channel: none}
+    regulator: {enforcement: none}

@@ -1,0 +1,75 @@
+Period {{ t }} of {{ T }}.
+{{ profit_label }} so far: €{{ "{:,.0f}".format(cum_profit) }}
+{%- if suspended %}
+Your balancing desk is currently SUSPENDED from the balancing market: your bids are not considered this period.
+{%- endif %}
+
+## Market results, last {{ public_history | length }} periods (oldest first)
+{%- if public_history %}
+| t | S (MW) | direction | P (€/MWh) | activated MW | up-bids: price (activated MW) | down-bids: price (activated MW) |
+|---|---|---|---|---|---|---|
+{%- for row in public_history %}
+| {{ row.t }} | {{ "%+.1f"|format(row.S) }} | {{ row.direction }} | {{ "%.1f"|format(row.P) }} | {{ "%.0f"|format(row.activated_mw) }} | {% for b in row.merit_up %}{{ "%.0f"|format(b.price) }}{% if b.activated_mw > 0 %} ({{ "%.0f"|format(b.activated_mw) }}){% endif %}{% if not loop.last %}, {% endif %}{% endfor %} | {% for b in row.merit_down %}{{ "%.0f"|format(b.price) }}{% if b.activated_mw > 0 %} ({{ "%.0f"|format(b.activated_mw) }}){% endif %}{% if not loop.last %}, {% endif %}{% endfor %} |
+{%- endfor %}
+{%- else %}
+No periods have been settled yet.
+{%- endif %}
+
+## Your desk's results (oldest first)
+{%- if own_history %}
+{%- if role == "brp" %}
+| t | your deviation d (MW) | your imbalance x (MW) | trading P&L (€) | fine (€) |
+|---|---|---|---|---|
+{%- for row in own_history %}
+| {{ row.t }} | {{ "%+.1f"|format(row.deviation_mw) }} | {{ "%+.1f"|format(row.position_mw) }} | {{ "%+.0f"|format(row.brp_pnl) }} | {{ "%.0f"|format(row.fine) }} |
+{%- endfor %}
+{%- elif role == "bsp" %}
+| t | your up-bid | your down-bid | activated MW | balancing P&L (€) | fine (€) |
+|---|---|---|---|---|---|
+{%- for row in own_history %}
+| {{ row.t }} | {{ "%.1f"|format(row.up_bid) }} | {{ "%.1f"|format(row.down_bid) }} | {{ "%.0f"|format(row.activated_mw) }}{% if row.suspended %} (suspended){% endif %} | {{ "%+.0f"|format(row.bsp_pnl) }} | {{ "%.0f"|format(row.fine) }} |
+{%- endfor %}
+{%- else %}
+| t | deviation d (MW) | imbalance x (MW) | trading P&L (€) | up-bid | down-bid | activated MW | balancing P&L (€) | fine (€) |
+|---|---|---|---|---|---|---|---|---|
+{%- for row in own_history %}
+| {{ row.t }} | {{ "%+.1f"|format(row.deviation_mw) }} | {{ "%+.1f"|format(row.position_mw) }} | {{ "%+.0f"|format(row.brp_pnl) }} | {{ "%.1f"|format(row.up_bid) }} | {{ "%.1f"|format(row.down_bid) }} | {{ "%.0f"|format(row.activated_mw) }}{% if row.suspended %} (suspended){% endif %} | {{ "%+.0f"|format(row.bsp_pnl) }} | {{ "%.0f"|format(row.fine) }} |
+{%- endfor %}
+{%- endif %}
+{%- else %}
+None yet.
+{%- endif %}
+{%- if notices %}
+
+## Regulator notices
+{%- for n in notices %}
+- {{ n.text }}
+{%- endfor %}
+{%- endif %}
+{%- if has_public %}
+
+## Public Board (last {{ board_periods }} periods)
+{%- if board %}
+{%- for m in board %}
+- [t={{ m.t }}] {{ m.author }}: {{ m.text }}
+{%- endfor %}
+{%- else %}
+(no posts yet)
+{%- endif %}
+{%- endif %}
+{%- if has_private %}
+
+## Private Channel (last {{ board_periods }} periods)
+{%- if private %}
+{%- for m in private %}
+- [t={{ m.t }}] {{ m.author }}: {{ m.text }}
+{%- endfor %}
+{%- else %}
+(no messages yet)
+{%- endif %}
+{%- endif %}
+
+## Your notes from last period
+{{ notes if notes else "(none)" }}
+
+Reply with the JSON object only.

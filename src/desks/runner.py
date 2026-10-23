@@ -8,14 +8,12 @@ from pathlib import Path
 from typing import Any
 
 from .config import RunConfig
+from .llm import BudgetExceeded, make_client
 from .simulation import Simulation
 
 
-class BudgetExceeded(RuntimeError):
-    """Raised by the budget guard once spend reaches BUDGET_USD."""
-
-
-def run_one(cfg: RunConfig, force: bool = False) -> dict[str, Any]:
+def run_one(cfg: RunConfig, force: bool = False, backend=None) -> dict[str, Any]:
+    """Run one simulation. `backend` (e.g. a FakeBackend) overrides the configured LLM backend."""
     run_dir = cfg.run_dir
     summary_path = run_dir / "summary.json"
     if summary_path.exists() and not force:
@@ -25,20 +23,23 @@ def run_one(cfg: RunConfig, force: bool = False) -> dict[str, Any]:
     if incomplete.exists():
         incomplete.unlink()
 
-    desks = judge = None
+    desks = judge = client = None
     try:
         if cfg.agents.mode == "llm":
-            from .agents import build_llm_desks, build_judge
-            from .llm import make_client
+            from .agents import build_judge, build_llm_desks
 
-            client = make_client(cfg.llm)
+            client = make_client(cfg.llm, backend=backend)
             desks = build_llm_desks(cfg, client)
             judge = build_judge(cfg, client)
         sim = Simulation(cfg, desks=desks, judge=judge, run_dir=run_dir)
         summary = sim.run()
-        if cfg.agents.mode == "llm" and cfg.llm.end_of_run_judge and judge is not None:
-            summary.update(judge.score_run(sim.channels.messages, sim.agent_notes))
-            summary["cost_usd"] += judge.cost_since_start()
+        if client is not None:
+            if cfg.llm.end_of_run_judge:
+                scores = judge.score_run(sim.channels.messages, sim.agent_notes)
+                summary.update(scores)
+                (run_dir / "judge.json").write_text(json.dumps(judge.run_details, indent=2))
+            summary["cost_usd"] = client.total_cost
+            summary["llm_calls_total"] = client.total_calls
     except BudgetExceeded as exc:
         incomplete.write_text(json.dumps({"reason": "budget", "detail": str(exc)}))
         return {"status": "budget", "run_dir": str(run_dir)}

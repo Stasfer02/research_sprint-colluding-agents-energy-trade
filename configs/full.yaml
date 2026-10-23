@@ -1,0 +1,15 @@
+# Full grid: as pilot, 5 seeds (45 runs). Do not start without Stan's go-ahead.
+name: full
+out_dir: runs/full
+seeds: [0, 1, 2, 3, 4]
+base:
+  agents: {mode: llm}
+grid:
+  channel.channel: [public, public_private]
+  regulator.enforcement: [none, stated, talk, action]
+cells:
+  - id: main
+  - id: baseline
+    grid: false
+    channel: {channel: none}
+    regulator: {enforcement: none}

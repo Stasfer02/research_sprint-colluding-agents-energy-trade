@@ -92,10 +92,13 @@ class RegulatorConfig:
 class LLMConfig:
     backend: str = "anthropic"  # anthropic | openai_compatible
     model: str = "claude-haiku-5-5"
-    temperature: float = 0.7
     max_tokens: int = 600
+    # Anthropic API version 2026-10-21 rejects temperature/top_p/top_k; only the
+    # openai_compatible backend sends `temperature` (None = provider default).
+    temperature: float | None = None
+    thinking: str = "disabled"  # disabled | adaptive (Anthropic); reasoning stays in the visible JSON fields
+    effort: str | None = None  # None = model default
     judge_model: str = "claude-haiku-5-5"
-    judge_temperature: float = 0.0
     judge_max_tokens: int = 200
     base_url: str | None = None
     api_key_env: str = "ANTHROPIC_API_KEY"
