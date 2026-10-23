@@ -22,13 +22,13 @@ Written with Stan on Fri 23 Oct, ~22:00 Amsterdam. Claude Code works through thi
 - [x] A4. `labels.py`, `detectors.py` (action, oracle, keyword talk), `regulator.py` (audit, ladder, fines, notices, cooldown, suspension) + tests. Smoke with enforcement {none, action, oracle}: detectors flag aggravate/cartel, not zero. **Gate 2.** Commit + push.
 
 ### B. LLM plumbing — no API cost (steps 5–6, 8)
-- [ ] B1. `llm.py`: anthropic + openai_compatible backends, retries/backoff, 60 s timeout, budget guard with file-locked `runs/ledger.json`, price table in config. Fake client for tests.
-- [ ] B2. Prompts (`brp.j2`, `bsp.j2`, `integrated.j2`, `judge.j2`), `agents.py` (rendering, JSON parse + one retry + fallback, clamping, notes), `channels.py`. Tests: parsing, info hiding (prompts never contain `e`, `r`, others' `d`, firm IDs in merit order), full sim with fake client. Add `objective: shared|separate` config option (cheap; tracker open question).
-- [ ] B3. `run_grid.py` full: grid expansion, resumable (skip runs with `summary.json`), `--workers`, clean stop on budget exhaustion. `summarize.py`: CSV + 3 plots. Commit + push.
-- [ ] B4. `eval_detectors.py` (seed split, thresholds on split 1, P/R/FPR on split 2, FPR on hard negatives, held-out detector in enforced cells) — validate on scripted runs incl. passive profiles. Commit + push.
+- [x] B1. `llm.py`: anthropic + openai_compatible backends, retries/backoff, 60 s timeout, budget guard with file-locked `runs/ledger.json`, price table in config. Fake client for tests.
+- [x] B2. Prompts (`brp.j2`, `bsp.j2`, `integrated.j2`, `judge.j2`), `agents.py` (rendering, JSON parse + one retry + fallback, clamping, notes), `channels.py`. Tests: parsing, info hiding (prompts never contain `e`, `r`, others' `d`, firm IDs in merit order), full sim with fake client. Add `objective: shared|separate` config option (cheap; tracker open question).
+- [x] B3. `run_grid.py` full: grid expansion, resumable (skip runs with `summary.json`), `--workers`, clean stop on budget exhaustion. `summarize.py`: CSV + 3 plots. Commit + push.
+- [x] B4. `eval_detectors.py` (seed split, thresholds on split 1, P/R/FPR on split 2, FPR on hard negatives, held-out detector in enforced cells) — validate on scripted runs incl. passive profiles. Commit + push.
 
 ### C. LLM stages — spends money (step 7)
-- [ ] C0. Sanity: one API call through the budget guard; confirm reported token usage and ledger cost look right.
+- [ ] C0. Sanity: one API call through the budget guard; confirm reported token usage and ledger cost look right. **BLOCKED 22:50: key needs `ANTHROPIC_WORKSPACE_ID` in `.env`; retry `scripts/llm_ping.py` periodically.**
 - [ ] C1. `llm_single.yaml` → read the full transcript. Write `docs/notes/llm_single-review.md`: do agents understand the market, parse rate, sensible actions, any prompt bugs. Fix prompt *clarity* bugs (not hypotheses) and re-run once if needed. **Gate 3.**
 - [ ] C2. `positive_control.yaml` (3 seeds). **Gate 4:** clear excess profit and/or aggravation/markup above benchmark. If not, improve payoff clarity in prompts (log it), re-run once; if still not, stop spending and write up.
 - [ ] C3. `pilot.yaml` (9 runs). Summarise; fix bugs; note results in Findings (labelled pilot, n=1 per cell — no conclusions about H1–H6).

@@ -1,11 +1,49 @@
 # Project tracker — Colluding Desks
 
 **Sprint:** Apart Research AI Collusion Research Sprint, 23–25 Oct 2026
-**Status:** Design complete — build starting in this repo (Claude Code in VS Code)
-**Last updated:** Fri 23 Oct 2026, 21:50 (Amsterdam)
+**Status:** Build steps 1–6 and 8 done (no-API gates 1–2 pass, 50 tests). LLM stages **blocked**: API key needs a workspace ID (see Morning handoff)
+**Last updated:** Fri 23 Oct 2026, 22:56 (Amsterdam)
 **Deadline:** Sun 25 Oct 23:59 AoE = **Mon 26 Oct 12:59 Amsterdam time** (clocks go back Sunday morning)
 **Related docs:** `docs/design-spec.md` (build spec) · `docs/related-work.md` (incidents + literature)
 **Note:** this repo copy is now the canonical tracker. The copy in the claude.ai Project is a snapshot from 23 Oct, 20:50.
+
+---
+
+## 0. Morning handoff (overnight run, Fri 23 → Sat 24 Oct)
+
+**Done and pushed to `origin/dev`:** spec §10 build steps 1–6 and 8, tested with scripted agents and a fake LLM backend.
+
+| Item | Result |
+|---|---|
+| Gate 1: smoke grid reproduces §2.6 signs | **PASS**, 15/15 sign checks (`runs/smoke`, 20 seeds). Magnitudes 10–50% below the planning table; see Findings |
+| Gate 2: detectors flag aggravate/cartel, not zero | **PASS**, 14/14 after tuning the action screen (Decisions log) |
+| Tests | 50 pass (`.venv/bin/pytest -q`) |
+| Detector evaluation (`scripts/eval_detectors.py`) | Works on scripted runs; see Findings |
+| C0: first real API call | **BLOCKED**: `400 This API key is not scoped to a workspace, so this request must include the anthropic-workspace-id header`. Not billed. Spend so far: $0 |
+| C1–C3: LLM single run, positive control, pilot | Not started (blocked by C0) |
+
+**What you need to do (about 2 minutes):**
+1. Anthropic Console → Settings → Workspaces → copy the workspace ID (`wrkspc_…`). Or create a key that is scoped to a workspace and use that instead.
+2. Add `ANTHROPIC_WORKSPACE_ID=wrkspc_…` to `.env`. The client sends it as the `anthropic-workspace-id` header; `.env.example` is updated.
+3. Check: `.venv/bin/python scripts/llm_ping.py` should print a reply and a cost of about $0.00001.
+4. Then: `llm_single` → read the transcript → `positive_control` → `pilot` (commands below). Total about $1–2.
+
+**Decisions for you to review (all in the Decisions log):**
+- Action-detector thresholds tuned on scripted runs (`|x| > 10`, ≥ 4 of 5 periods). Its condition now uses the firm's BSP profit in aggravating periods, because the spec's "excess over a cost re-clear" is always 0 for cost bidders.
+- **No `temperature`** anywhere. The current API version rejects it on every model, so the judge is not deterministic.
+- Haiku's hidden thinking is turned off, so all reasoning sits in the logged JSON fields.
+- **Suspensions raise consumer harm mechanically** (they withdraw 40 MW, which causes scarcity pricing). This confounds H6. Decide: keep and report it, or add a fine-only sensitivity cell. See Findings.
+
+**Commands for Saturday:**
+```bash
+.venv/bin/python scripts/llm_ping.py
+.venv/bin/python scripts/run_grid.py configs/llm_single.yaml           # 1 run, ~$0.05–0.10, ~3 min
+.venv/bin/python scripts/run_grid.py configs/positive_control.yaml --workers 3
+.venv/bin/python scripts/run_grid.py configs/pilot.yaml --workers 4    # 9 runs
+.venv/bin/python scripts/summarize.py runs/pilot
+.venv/bin/python scripts/eval_detectors.py runs/pilot --judge          # judge on every window, ~$0.1
+```
+Transcripts: `runs/<grid>/<cell>/seed_<n>/agent_io.jsonl` (full prompts and raw outputs), `messages.jsonl`, `judge.json`.
 
 ---
 
@@ -98,6 +136,8 @@ Many energy companies hold two roles at once. As a Balance Responsible Party (BR
 | 23 Oct (build) | Haiku 5.5 hidden thinking **disabled** (`thinking: {type: disabled}`, default effort) | Haiku 5.5 thinks adaptively by default; hidden thinking would (a) eat the 600-token budget and truncate the JSON, (b) put reasoning where we can't log it. With it off, all reasoning is in the visible `reflection` / `plan` / `notes` fields, which is what the plan-vs-talk analysis needs. Configurable (`llm.thinking`) |
 | 23 Oct (build) | One `system.j2` (role-conditional) + `user.j2` + `judge.j2` instead of `brp.j2` / `bsp.j2` / `integrated.j2` | Same market-rules text for every role by construction; less drift between role prompts |
 | 23 Oct (build) | Judge also runs end-of-run: per firm × channel (public / private) score and a plan-vs-talk inconsistency score (notes vs public posts) | Spec §7 talk metrics + optional plan-vs-talk layer; ~9 extra cheap calls per run |
+| 23 Oct (build) | Optional `ANTHROPIC_WORKSPACE_ID` env var → `anthropic-workspace-id` header | The provided key is not workspace-scoped; the API refuses requests without the header |
+| 23 Oct (build) | Detector eval: tuning split = even seeds, test split = odd seeds; threshold = max F1 on tuning split; single-seed grids report in-sample; "action OR talk" combination evaluated only in cells where neither is the enforcing detector | Spec §6 protocol made concrete |
 
 ## 7. Findings
 
@@ -107,6 +147,8 @@ Many energy companies hold two roles at once. As a Balance Responsible Party (BR
 - **23 Oct (smoke with enforcement) — Gate 2 PASS (29/29 checks, `scripts/check_smoke.py`).** Flags per run on firm A: action — benchmark 0.00, A aggravate 1.30, A markup 3.90, A cartel 3.90, all passive 0.05; oracle — 0.00 / 2.25 / 3.80 / 3.80 / 0.05. Wrongful flags (non-positive windows): action ≤ 0.05/run, oracle 0. Keyword talk detector flags scripted aggravators with 1.4 wrongful flags/run in `A_aggravate` — the talk states intent in windows whose action label is still negative (scripted `d = 0.4·S_{t−1}` is often < 10 MW). Relevant to H3/H5 framing: talk and action layers disagree by construction.
 
 - **23 Oct (smoke, design issue for Stan) — suspensions can raise consumer harm.** A suspended BSP removes 40 MW of capacity (120 → 80 MW per direction), so large imbalances hit the price cap/floor. Scripted, rest-of-market harm per run: all cartel −80k (none) vs −134k (action) / −128k (oracle); all aggravate −64k vs −79–80k; A cartel alone −5.7k vs −7.8k. Scripted agents don't react to enforcement, so this is the pure mechanical effect of the sanction. For the LLM grid this confounds H6 (enforcement "cost to the grid" partly comes from the sanction itself, not from chilled passive balancing). Options: keep (realistic, report it), or make suspension a fine-only sanction in a sensitivity cell.
+
+- **23 Oct (detector eval on scripted smoke, `runs/smoke/_eval`, 56,160 windows; test split = odd seeds).** Built-in rules: action precision 0.999 / recall 0.61 / FPR 0.000 / FPR on hard negatives 0.000; keyword talk 0.91 / 0.70 / 0.042 / 0.000; oracle 1.00 / 0.79 / 0 / 0. Tuned-threshold action: 0.91 / 0.72 / 0.043 / 0.050 (tuning trades hard-negative FPR for recall). Action OR keyword-talk: 0.875 / 0.85 / 0.076 / 0.050. Scripted data only (passive volume is small and the posts are canned), so this validates the pipeline, not H3.
 
 ## 8. Open questions
 
@@ -119,12 +161,12 @@ Many energy companies hold two roles at once. As a Balance Responsible Party (BR
 ## 9. Plan and next steps
 
 **Friday night**
-- [ ] Create repo; add `CLAUDE.md` and `docs/`; `.env` with API key and `BUDGET_USD`
-- [ ] Claude Code: build steps 1–4 from `design-spec.md` §10 (no API cost)
-- [ ] Smoke grid reproduces the §2.6 signs
+- [x] Create repo; add `CLAUDE.md` and `docs/`; `.env` with API key and `BUDGET_USD` (key needs a workspace ID too; see §0)
+- [x] Claude Code: build steps 1–4 from `design-spec.md` §10 (no API cost)
+- [x] Smoke grid reproduces the §2.6 signs
 
 **Saturday**
-- [ ] LLM client, prompts, parsing (build step 5) and runner/summary (step 6)
+- [x] LLM client, prompts, parsing (build step 5) and runner/summary (step 6). Done Friday night, with `eval_detectors.py` (step 8)
 - [ ] One LLM run, read the transcript
 - [ ] Positive control (integrated + private channel + coalition instruction)
 - [ ] Pilot grid (1 seed per cell); fix bugs and prompts
@@ -162,3 +204,4 @@ Many energy companies hold two roles at once. As a Balance Responsible Party (BR
 
 - **23 Oct 20:50** — Tracker created (claude.ai Project): pitch, environment design, hypotheses H1–H6, detection plan, decisions, open questions, weekend plan.
 - **23 Oct 21:50** — Moved into the repo. New repo instead of fork; parameters and incentive check added (Findings); compliance-text decision; model choice; shared-vs-separate objective promoted in open questions; plan aligned with spec build order.
+- **23 Oct 22:56** — Overnight build (Claude Code): spec §10 steps 1–6 + 8 implemented; gates 1–2 pass; smoke findings and detector-eval pipeline results added; 8 build decisions logged; LLM stages blocked on the API key's workspace ID (§0 Morning handoff).

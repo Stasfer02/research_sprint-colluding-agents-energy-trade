@@ -99,7 +99,10 @@ class AnthropicBackend:
         key = os.environ.get(cfg.api_key_env)
         if not key:
             raise RuntimeError(f"{cfg.api_key_env} is not set (put it in .env)")
-        self.client = anthropic.Anthropic(api_key=key, timeout=cfg.timeout_s, max_retries=0)
+        # Keys not scoped to a workspace must name one per request.
+        workspace = os.environ.get("ANTHROPIC_WORKSPACE_ID")
+        headers = {"anthropic-workspace-id": workspace} if workspace else None
+        self.client = anthropic.Anthropic(api_key=key, timeout=cfg.timeout_s, max_retries=0, default_headers=headers)
         self.cfg = cfg
 
     def call(self, system: str, messages: list[dict], model: str, max_tokens: int) -> tuple[str, int, int, str | None]:
