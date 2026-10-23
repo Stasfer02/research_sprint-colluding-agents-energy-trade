@@ -10,7 +10,8 @@ Written with Stan on Fri 23 Oct, ~22:00 Amsterdam. Claude Code works through thi
 - **Parameter tweaks:** if the smoke grid doesn't reproduce §2.6 signs *after ruling out bugs*, the smallest parameter change that restores them is allowed — log it with before/after numbers. Proceed to LLM stages on changed parameters only if the change is a single, clearly justified value; otherwise stop spending and flag it.
 - **Git:** commit on `dev` at each gate / component (small, descriptive commits), push to `origin/dev`. Never force-push, never touch `main`, never commit `.env` or `runs/`.
 - **Secrets:** never read, print or `cat` `.env`. Code loads it into the environment; tests never need a real key.
-- **Python:** use `.venv/bin/python` / `.venv/bin/pytest` (Python 3.12, deps pre-installed). Long runs via `nohup caffeinate -i .venv/bin/python scripts/run_grid.py ... > runs/<name>.log 2>&1 &`, then poll.
+- **Python:** use `.venv/bin/python` / `.venv/bin/pytest` (Python 3.12, deps pre-installed). Long runs: Bash tool with `run_in_background` (`.venv/bin/python scripts/run_grid.py ...`; the runner writes its own log under `runs/`).
+- **Permissions (no Bypass mode):** only these shell commands are pre-approved in `.claude/settings.json` — anything else prompts and stalls the night: `.venv/bin/python`, `.venv/bin/pytest`, `uv pip install`, `git status|diff|log|add|commit`, `git push origin dev`, `ls`, `mkdir`, `tail`, `wc`. One command per Bash call — no `cd … &&`, no pipes into other tools, no `cat`/`grep`/`find` (use the Read tool; do file inspection in Python if needed). Stay inside the repo.
 
 ## Checklist
 
