@@ -1,0 +1,302 @@
+"""Period loop, observation building and per-run logging (spec §2.2, §9)."""
+
+from __future__ import annotations
+
+import json
+import time
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+
+from . import FIRMS
+from .agents_base import Action, Desk, Observation
+from .channels import Channels
+from .config import RunConfig
+from .detectors import ActionDetector, KeywordTalkDetector, OracleDetector
+from .labels import period_labels
+from .market import benchmark, bid_markup, clamp_bids, clear, settle
+from .metrics import summarize
+from .policies import ScriptedBRP, ScriptedBSP
+from .regulator import Regulator
+
+NOTICES_SHOWN = 5
+
+
+class JsonlWriter:
+    def __init__(self, run_dir: Path | None):
+        self.run_dir = run_dir
+        self.handles: dict[str, Any] = {}
+        if run_dir is not None:
+            run_dir.mkdir(parents=True, exist_ok=True)
+            for name in ("periods", "agent_io", "messages", "regulator"):
+                self.handles[name] = open(run_dir / f"{name}.jsonl", "w")
+
+    def write(self, name: str, obj: dict[str, Any]) -> None:
+        h = self.handles.get(name)
+        if h is not None:
+            h.write(json.dumps(obj, default=_json_default) + "\n")
+            h.flush()
+
+    def close(self) -> None:
+        for h in self.handles.values():
+            h.close()
+
+
+def _json_default(o):
+    if isinstance(o, np.generic):
+        return o.item()
+    if isinstance(o, np.ndarray):
+        return o.tolist()
+    raise TypeError(type(o))
+
+
+def make_streams(seed: int, T: int, n: int, sigma_f: float, sigma_r: float, rho: float):
+    """Separate RNG streams: market noise, tie-breaking, regulator audits, scripted-policy randomness.
+
+    Everything except policy randomness is drawn up front, so agent behaviour never changes the noise path.
+    """
+    noise_ss, tie_ss, audit_ss, policy_ss = np.random.SeedSequence(seed).spawn(4)
+    rng_noise = np.random.default_rng(noise_ss)
+    e = rng_noise.normal(0.0, sigma_f, (T, n))
+    eps = rng_noise.normal(0.0, sigma_r, T)
+    r = np.zeros(T)
+    prev = 0.0
+    for t in range(T):
+        prev = rho * prev + eps[t]
+        r[t] = prev
+    tie = np.random.default_rng(tie_ss).random((T, n))
+    audit = np.random.default_rng(audit_ss).random(T)
+    return e, r, tie, audit, np.random.default_rng(policy_ss)
+
+
+def build_scripted_desks(cfg: RunConfig, rng_policy: np.random.Generator) -> dict[str, dict[str, Desk]]:
+    m, a = cfg.market, cfg.agents
+    return {
+        f: {
+            "brp": ScriptedBRP(f, a.brp[i], m.D, rng_policy),
+            "bsp": ScriptedBSP(f, a.bsp[i], m.c_up[i], m.c_down[i]),
+        }
+        for i, f in enumerate(FIRMS)
+    }
+
+
+def make_enforcing_detector(cfg: RunConfig, judge=None):
+    enf = cfg.regulator.enforcement
+    if enf == "action":
+        return ActionDetector(cfg.regulator.action)
+    if enf == "oracle":
+        return OracleDetector()
+    if enf == "talk":
+        kind = cfg.regulator.talk_detector
+        if kind == "auto":
+            kind = "judge" if cfg.agents.mode == "llm" else "keyword"
+        if kind == "judge":
+            if judge is None:
+                raise ValueError("talk enforcement with judge detector needs a judge")
+            return judge
+        return KeywordTalkDetector(cfg.regulator.talk_flag_score)
+    return None
+
+
+class Simulation:
+    def __init__(
+        self,
+        cfg: RunConfig,
+        desks: dict[str, dict[str, Desk]] | None = None,
+        judge=None,
+        run_dir: Path | None = None,
+    ):
+        self.cfg = cfg
+        m = cfg.market
+        self.firms = FIRMS
+        self.n = len(FIRMS)
+        self.e, self.r, self.tie, self.audit, rng_policy = make_streams(cfg.seed, m.T, self.n, m.sigma_f, m.sigma_r, m.rho)
+        self.desks = desks if desks is not None else build_scripted_desks(cfg, rng_policy)
+        self.judge = judge
+        self.channels = Channels(cfg.channel.channel, cfg.channel.board_periods, cfg.channel.max_chars)
+        self.regulator = Regulator(cfg.regulator, self.firms, make_enforcing_detector(cfg, judge), self.audit)
+        self.run_dir = run_dir
+        self.c_up = np.asarray(m.c_up, float)
+        self.c_down = np.asarray(m.c_down, float)
+        self.records: list[dict[str, Any]] = []
+        self.reg_events: list[dict[str, Any]] = []
+        self.notices: list[dict[str, Any]] = []
+        self.io_stats: list[dict[str, Any]] = []
+        self.agent_notes: list[dict[str, Any]] = []
+
+    # ------------------------------------------------------------------ observations
+    def _observation(self, firm: str, role: str, t: int, suspended: bool) -> Observation:
+        H = self.cfg.agents.history_window
+        i = self.firms.index(firm)
+        recent = self.records[-H:]
+        public = [rec["public"] for rec in recent]
+        own = []
+        for rec in recent:
+            f = rec["firms"][firm]
+            row: dict[str, Any] = {"t": rec["t"]}
+            if role in ("brp", "integrated"):
+                row.update(deviation_mw=f["d"], position_mw=f["x"], brp_pnl=f["brp"])
+            if role in ("bsp", "integrated"):
+                row.update(up_bid=f["u"], down_bid=f["v"], activated_mw=f["q"], bsp_pnl=f["bsp"], suspended=f["suspended"])
+            row["fine"] = f["fine"]
+            own.append(row)
+        objective = "firm" if (role == "integrated" or self.cfg.agents.objective == "shared") else "desk"
+        total = 0.0
+        for rec in self.records:
+            f = rec["firms"][firm]
+            if objective == "firm":
+                total += f["brp"] + f["bsp"] - f["fine"]
+            else:
+                total += (f["brp"] if role == "brp" else f["bsp"]) - f["fine"]
+        label = f"Firm {firm} total profit (both desks, after fines)" if objective == "firm" else "Your desk's profit (after fines)"
+        return Observation(
+            firm=firm, role=role, t=t, T=self.cfg.market.T,
+            S_prev=self.records[-1]["S"] if self.records else 0.0,
+            public_history=public, own_history=own, cum_profit=total, profit_label=label,
+            board=self.channels.board(t), private=self.channels.private(t),
+            notices=self.notices[-NOTICES_SHOWN:], suspended=suspended,
+            c_up=float(self.c_up[i]), c_down=float(self.c_down[i]),
+        )
+
+    def _collect_actions(self, t: int, suspended: dict[str, bool]) -> dict[tuple[str, str], Action]:
+        jobs = []
+        for firm in self.firms:
+            for role, desk in self.desks[firm].items():
+                jobs.append((firm, role, desk))
+        last = self.records[-1]["firms"] if self.records else None
+
+        def run(job):
+            firm, role, desk = job
+            if role == "bsp" and suspended[firm]:
+                prev = last[firm] if last else None
+                i = self.firms.index(firm)
+                return Action(
+                    up_bid=prev["u"] if prev else self.c_up[i],
+                    down_bid=prev["v"] if prev else self.c_down[i],
+                    io=[{"skipped": "suspended"}],
+                )
+            return desk.act(self._observation(firm, role, t, suspended[firm]))
+
+        if self.cfg.agents.mode == "llm" and len(jobs) > 1:
+            with ThreadPoolExecutor(max_workers=self.cfg.llm.desk_workers) as pool:
+                results = list(pool.map(run, jobs))
+        else:
+            results = [run(j) for j in jobs]
+        return {(firm, role): res for (firm, role, _), res in zip(jobs, results)}
+
+    # ------------------------------------------------------------------ main loop
+    def run(self) -> dict[str, Any]:
+        cfg, m = self.cfg, self.cfg.market
+        log = JsonlWriter(self.run_dir)
+        if self.run_dir is not None:
+            (self.run_dir / "config.json").write_text(json.dumps(cfg.to_dict(), indent=2, default=_json_default))
+        t0 = time.time()
+        suspended_until = {f: 0 for f in self.firms}
+        try:
+            for t in range(1, m.T + 1):
+                k = t - 1
+                suspended = {f: suspended_until[f] >= t for f in self.firms}
+                actions = self._collect_actions(t, suspended)
+
+                d = np.zeros(self.n)
+                u = self.c_up.copy()
+                v = self.c_down.copy()
+                for i, f in enumerate(self.firms):
+                    for role in self.desks[f]:
+                        a = actions[(f, role)]
+                        if a.deviation is not None and role in ("brp", "integrated"):
+                            d[i] = a.deviation
+                        if role in ("bsp", "integrated"):
+                            if a.up_bid is not None:
+                                u[i] = a.up_bid
+                            if a.down_bid is not None:
+                                v[i] = a.down_bid
+                        self.channels.post(t, f, role, a.public_post, a.private_message)
+                        for entry in a.io:
+                            log.write("agent_io", {"t": t, "firm": f, "desk": role, **entry})
+                            if "input_tokens" in entry:
+                                self.io_stats.append(entry)
+                        if a.notes is not None:
+                            self.agent_notes.append({"t": t, "firm": f, "desk": role, "notes": a.notes})
+                        if a.io and not a.parse_ok:
+                            self.io_stats.append({"parse_fail": True})
+                d = np.clip(d, -m.D, m.D)
+                u, v, clamped = clamp_bids(u, v, m)
+                eligible = np.array([not suspended[f] for f in self.firms])
+
+                e, r, keys = self.e[k], float(self.r[k]), self.tie[k]
+                x = e + d
+                S = float(x.sum() + r)
+                cl = clear(S, u, v, m.K, eligible, keys, m)
+                st = settle(x, r, cl, self.c_up, self.c_down, m.lam)
+                S_c, cl_c, st_c = benchmark(e, r, keys, m)
+                cl_cc = clear(S, self.c_up, self.c_down, m.K, eligible, keys, m)
+                st_cc = settle(x, r, cl_cc, self.c_up, self.c_down, m.lam)
+                S_prev = self.records[-1]["S"] if self.records else 0.0
+
+                firms_rec = {}
+                for i, f in enumerate(self.firms):
+                    mk = 0.0 if suspended[f] else bid_markup(u[i], v[i], self.c_up[i], self.c_down[i], cl.direction)
+                    firms_rec[f] = {
+                        "e": float(e[i]), "d": float(d[i]), "x": float(x[i]),
+                        "u": float(u[i]), "v": float(v[i]), "q": float(cl.q[i]),
+                        "brp": float(st.brp[i]), "bsp": float(st.bsp[i]),
+                        "brp_comp": float(st_c.brp[i]), "bsp_comp": float(st_c.bsp[i]),
+                        "comp": float(st_c.brp[i] + st_c.bsp[i]),
+                        "bsp_costclear": float(st_cc.bsp[i]),
+                        "fine": 0.0, "suspended": bool(suspended[f]), "markup": float(mk),
+                        **period_labels(float(d[i]), S, S_prev, mk, suspended[f]),
+                    }
+                order_up = np.argsort(u[eligible], kind="stable")
+                order_dn = np.argsort(-v[eligible], kind="stable")
+                ue, ve, qe = u[eligible], v[eligible], cl.q[eligible]
+                public = {
+                    "t": t, "S": S, "P": cl.price, "direction": cl.direction,
+                    "activated_mw": float(cl.q.sum()), "scarcity": cl.scarcity,
+                    "merit_up": [
+                        {"price": float(ue[j]), "mw": float(m.K), "activated_mw": float(qe[j]) if cl.direction == "short" else 0.0}
+                        for j in order_up
+                    ],
+                    "merit_down": [
+                        {"price": float(ve[j]), "mw": float(m.K), "activated_mw": float(qe[j]) if cl.direction == "long" else 0.0}
+                        for j in order_dn
+                    ],
+                }
+                rec = {
+                    "t": t, "S": S, "S_prev": S_prev, "P": cl.price, "direction": cl.direction, "scarcity": cl.scarcity,
+                    "r": r, "S_comp": S_c, "P_comp": cl_c.price, "direction_comp": cl_c.direction,
+                    "scarcity_comp": cl_c.scarcity, "activated_mw": float(cl.q.sum()),
+                    "activated_mw_comp": float(cl_c.q.sum()),
+                    "marginal": self.firms[cl.marginal] if cl.marginal is not None else None,
+                    "rest": st.rest, "rest_comp": st_c.rest, "clamped": clamped,
+                    "bid_crossed": bool(np.any(v > u)),
+                    "firms": firms_rec, "public": public,
+                }
+                self.records.append(rec)
+
+                events = self.regulator.step(t, self.records, self.channels.public_messages())
+                for ev in events:
+                    rec["firms"][ev.firm]["fine"] += ev.fine
+                    if ev.action == "fine+suspension":
+                        suspended_until[ev.firm] = t + cfg.regulator.suspension_periods
+                    if ev.notice:
+                        self.notices.append({"t": t, "text": ev.notice})
+                    evd = ev.to_dict()
+                    self.reg_events.append(evd)
+                    log.write("regulator", evd)
+                rec["public"]["notices"] = [ev.notice for ev in events if ev.notice]
+
+                for msg in self.channels.messages:
+                    if msg["t"] == t:
+                        log.write("messages", msg)
+                log.write("periods", rec)
+        finally:
+            log.close()
+
+        summary = summarize(
+            self.records, self.reg_events, self.channels.messages, self.io_stats, self.agent_notes, cfg,
+            wall_time=time.time() - t0,
+        )
+        return summary

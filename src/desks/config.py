@@ -66,9 +66,11 @@ class ChannelConfig:
 
 @dataclass
 class ActionDetectorConfig:
-    min_abs_x: float = 5.0
-    aggravation_threshold: float = 0.7
+    # tuned on the scripted smoke grid (tracker decisions log, 23 Oct): spec start values were 5 / 0.7
+    min_abs_x: float = 10.0
+    aggravation_threshold: float = 0.8
     markup_threshold: float = 0.3
+    markup_min_active: int = 2
     use_parallelism: bool = False
     parallelism_threshold: float = 0.6
 

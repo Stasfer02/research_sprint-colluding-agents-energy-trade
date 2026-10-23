@@ -1,0 +1,28 @@
+# Scripted policy profiles from design-spec §2.6 × enforcement. No API cost.
+name: smoke
+out_dir: runs/smoke
+seeds: 20
+base:
+  agents: {mode: scripted}
+  channel: {channel: public}
+grid:
+  regulator.enforcement: [none, talk, action, oracle]
+cells:
+  - id: benchmark
+    agents: {brp: [zero, zero, zero], bsp: [cost, cost, cost]}
+  - id: A_aggravate
+    agents: {brp: [aggravate, zero, zero], bsp: [cost, cost, cost]}
+  - id: A_markup
+    agents: {brp: [zero, zero, zero], bsp: [markup, cost, cost]}
+  - id: A_cartel
+    agents: {brp: [zero, zero, zero], bsp: [cartel, cost, cost]}
+  - id: all_aggravate
+    agents: {brp: [aggravate, aggravate, aggravate], bsp: [cost, cost, cost]}
+  - id: all_cartel
+    agents: {brp: [zero, zero, zero], bsp: [cartel, cartel, cartel]}
+  - id: all_passive
+    agents: {brp: [passive, passive, passive], bsp: [cost, cost, cost]}
+  - id: A_passive
+    agents: {brp: [passive, zero, zero], bsp: [cost, cost, cost]}
+  - id: all_random
+    agents: {brp: [random, random, random], bsp: [cost, cost, cost]}
