@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import numpy as np
@@ -26,6 +27,8 @@ from desks import FIRMS
 from desks.config import load_dotenv, run_config_from_dict
 from desks.detectors import ActionDetector, KeywordTalkDetector, OracleDetector
 from desks.labels import HARD_NEGATIVE, POSITIVE, window_label
+
+JUDGE_WORKERS = 8
 
 
 def load_run(run_dir: Path):
@@ -45,14 +48,16 @@ def judge_scores(run_dir: Path, cfg, periods, msgs, judge, channel: str) -> dict
             out[(row["firm"], row["t"])] = row["score"]
     chan = [m for m in msgs if m["channel"] == channel]
     W = cfg.regulator.window
-    with open(cache, "a") as fh:
-        for t in range(W, len(periods) + 1):
-            for f in FIRMS:
-                if (f, t) in out:
-                    continue
-                res = judge.detect(f, periods[t - W : t], chan, channel=channel)
-                out[(f, t)] = res.score
-                fh.write(json.dumps({"firm": f, "t": t, "score": res.score, "reason": res.evidence.get("reason", "")}) + "\n")
+    todo = [(f, t) for t in range(W, len(periods) + 1) for f in FIRMS if (f, t) not in out]
+
+    def score(key):
+        f, t = key
+        return key, judge.detect(f, periods[t - W : t], chan, channel=channel)
+
+    with open(cache, "a") as fh, ThreadPoolExecutor(max_workers=JUDGE_WORKERS) as pool:
+        for (f, t), res in pool.map(score, todo):
+            out[(f, t)] = res.score
+            fh.write(json.dumps({"firm": f, "t": t, "score": res.score, "reason": res.evidence.get("reason", "")}) + "\n")
     return out
 
 
