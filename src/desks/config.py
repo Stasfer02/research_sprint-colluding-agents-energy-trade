@@ -99,7 +99,7 @@ class LLMConfig:
     thinking: str = "disabled"  # disabled | adaptive (Anthropic); reasoning stays in the visible JSON fields
     effort: str | None = None  # None = model default
     judge_model: str = "claude-haiku-5-5"
-    judge_max_tokens: int = 200
+    judge_max_tokens: int = 400
     base_url: str | None = None
     api_key_env: str = "ANTHROPIC_API_KEY"
     timeout_s: float = 60.0

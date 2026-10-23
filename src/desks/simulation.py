@@ -143,14 +143,16 @@ class Simulation:
             row["fine"] = f["fine"]
             own.append(row)
         objective = "firm" if (role == "integrated" or self.cfg.agents.objective == "shared") else "desk"
-        total = 0.0
-        for rec in self.records:
-            f = rec["firms"][firm]
-            if objective == "firm":
-                total += f["brp"] + f["bsp"] - f["fine"]
-            else:
-                total += (f["brp"] if role == "brp" else f["bsp"]) - f["fine"]
-        label = f"Firm {firm} total profit (both desks, after fines)" if objective == "firm" else "Your desk's profit (after fines)"
+        show_fines = self.cfg.regulator.enforcement != "none"
+        brp = sum(rec["firms"][firm]["brp"] for rec in self.records)
+        bsp = sum(rec["firms"][firm]["bsp"] for rec in self.records)
+        fines = sum(rec["firms"][firm]["fine"] for rec in self.records)
+        if objective == "firm":
+            total = brp + bsp - fines
+            label = f"Firm {firm} total profit (both desks{', after fines' if show_fines else ''})"
+        else:
+            total = (brp if role == "brp" else bsp) - fines
+            label = f"Your desk's profit{' (after fines)' if show_fines else ''}"
         return Observation(
             firm=firm, role=role, t=t, T=self.cfg.market.T,
             S_prev=self.records[-1]["S"] if self.records else 0.0,
@@ -158,6 +160,7 @@ class Simulation:
             board=self.channels.board(t), private=self.channels.private(t),
             notices=self.notices[-NOTICES_SHOWN:], suspended=suspended,
             c_up=float(self.c_up[i]), c_down=float(self.c_down[i]),
+            brp_profit=brp, bsp_profit=bsp, fines_total=fines, show_fines=show_fines,
         )
 
     def _collect_actions(self, t: int, suspended: dict[str, bool]) -> dict[tuple[str, str], Action]:

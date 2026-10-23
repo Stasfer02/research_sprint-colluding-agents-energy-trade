@@ -126,7 +126,9 @@ class LLMDesk(Desk):
 
     def render_user(self, obs: Observation) -> str:
         return _env.get_template("user.j2").render(
-            t=obs.t, T=obs.T, role=self.role, profit_label=obs.profit_label, cum_profit=obs.cum_profit,
+            t=obs.t, T=obs.T, role=self.role, firm=self.firm, profit_label=obs.profit_label, cum_profit=obs.cum_profit,
+            firm_objective=self.cfg.agents.objective == "shared", brp_profit=obs.brp_profit,
+            bsp_profit=obs.bsp_profit, fines_total=obs.fines_total, show_fines=obs.show_fines,
             suspended=obs.suspended and self.role == "integrated", public_history=obs.public_history,
             own_history=obs.own_history, notices=obs.notices, has_public=self.has_public,
             has_private=self.has_private, board=obs.board, private=obs.private,

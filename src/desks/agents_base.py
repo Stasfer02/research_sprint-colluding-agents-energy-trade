@@ -29,6 +29,11 @@ class Observation:
     suspended: bool = False
     c_up: float | None = None
     c_down: float | None = None
+    # cumulative breakdown of the firm's profit, so a desk can see how much is its own
+    brp_profit: float = 0.0
+    bsp_profit: float = 0.0
+    fines_total: float = 0.0
+    show_fines: bool = False  # False when enforcement is "none": no mention of fines at all
 
 
 @dataclass

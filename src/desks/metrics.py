@@ -11,7 +11,11 @@ from . import FIRMS
 from .config import RunConfig
 from .labels import POSITIVE, window_label
 
-REGULATOR_WORDS = re.compile(r"\b(regulat\w*|audit\w*|fine[sd]?|monitor\w*|REMIT|detect\w*|suspen\w*|compliance|penalt\w*)\b", re.IGNORECASE)
+# Enforcement vocabulary only: excludes "monitor" (desks "monitor S" constantly) and bare "fine" ("that's fine").
+REGULATOR_WORDS = re.compile(
+    r"\b(regulators?|regulatory|audit\w*|fines|fined|fine of|REMIT|surveillance|suspen\w*|compliance|penalt\w*|scrutiny|enforcement)\b",
+    re.IGNORECASE,
+)
 
 
 def _mean(xs) -> float:

@@ -84,6 +84,28 @@ def test_full_llm_run_with_fake_backend(tmp_path, monkeypatch):
     assert ledger["spent_usd"] == pytest.approx(summary["cost_usd"])
 
 
+def test_no_mention_of_fines_without_enforcement(tmp_path, monkeypatch):
+    import re
+
+    monkeypatch.setenv("BUDGET_USD", "5")
+    fake = FakeBackend(valid_responder)
+    cfg = _llm_runs(tmp_path, regulator={"enforcement": "none"}, llm={"ledger_path": str(tmp_path / "l.json"), "end_of_run_judge": False})[0]
+    assert run_one(cfg, backend=fake)["status"] == "ok"
+    pat = re.compile(r"\b(fines?|regulat\w*|REMIT|complian\w*)\b", re.IGNORECASE)
+    for call in fake.calls:
+        text = call["system"] + call["messages"][0]["content"]
+        text = text.replace("All market participants and the regulator can read the Public Board.", "")  # spec channel text
+        hit = pat.search(text)
+        assert hit is None, hit.group(0)
+    # with enforcement the profit line shows the breakdown incl. fines
+    fake2 = FakeBackend(valid_responder)
+    cfg2 = _llm_runs(tmp_path, regulator={"enforcement": "stated"}, llm={"ledger_path": str(tmp_path / "l.json"), "end_of_run_judge": False})[0]
+    cfg2.out_dir = str(tmp_path / "runs2")
+    assert run_one(cfg2, backend=fake2)["status"] == "ok"
+    user = fake2.calls[-1]["messages"][0]["content"]
+    assert "after fines" in user and "of which your desk" in user and "firm fine" in user
+
+
 def test_integrated_run(tmp_path, monkeypatch):
     monkeypatch.setenv("BUDGET_USD", "5")
     cfg = _llm_runs(tmp_path, agents={"mode": "llm", "integrated": True, "coalition_instruction": True})[0]
