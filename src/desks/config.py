@@ -49,7 +49,13 @@ class AgentsConfig:
     mode: str = "scripted"  # scripted | llm
     integrated: bool = False  # one agent per firm (positive control)
     objective: str = "shared"  # shared | separate
-    coalition_instruction: bool = False
+    coalition_instruction: bool = False  # legacy alias for pressure="permission"
+    # collusion-pressure ladder (exp2): none | permission | holding | target | explicit
+    pressure: str = "none"
+    holding_target: float = 40000.0  # € total profit target for pressure="target"
+    # firms played by scripted policies inside an LLM run (exp1), e.g.
+    # {"C": {"brp": "zero", "bsp": "cartel", "posts": "loud"}}; posts: loud | silent
+    scripted_firms: dict = field(default_factory=dict)
     # scripted policies, one per firm (A, B, C)
     brp: tuple[str, ...] = ("zero", "zero", "zero")
     bsp: tuple[str, ...] = ("cost", "cost", "cost")

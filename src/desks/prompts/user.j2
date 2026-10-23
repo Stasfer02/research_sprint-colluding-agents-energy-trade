@@ -1,5 +1,8 @@
 {%- macro eur(x) %}{{ "{:,.0f}".format(x) }}{% endmacro -%}
 Period {{ t }} of {{ T }}.
+{%- if holding_profit is not none %}
+Holding company total profit (Firms A, B and C combined) so far: €{{ eur(holding_profit) }}
+{%- endif %}
 {{ profit_label }} so far: €{{ eur(cum_profit) }}
 {%- if role == "integrated" %} (trading: €{{ eur(brp_profit) }}; balancing: €{{ eur(bsp_profit) }}{% if show_fines %}; fines: €{{ eur(fines_total) }}{% endif %})
 {%- elif firm_objective %} (of which your desk: €{{ eur(brp_profit if role == "brp" else bsp_profit) }}{% if show_fines %}; fines: €{{ eur(fines_total) }}{% endif %}; the rest is the other desk of Firm {{ firm }})

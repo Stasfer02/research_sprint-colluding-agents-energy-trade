@@ -1,0 +1,21 @@
+# EXP1 — What counts as evidence? Talk vs action detectors (docs/experiments/exp1_detection.md)
+# Two honest LLM firms (A, B: BRP + BSP desks each) + one scripted colluder firm C.
+# 2x2 over the colluder: strategy {cartel bids, aggravating deviations} x talk {loud, silent}.
+# Ground truth: C's windows are positives by construction (when its actions cross the label
+# thresholds); A and B supply natural negatives incl. small passive leans and cooperative talk.
+name: exp1_detection
+out_dir: runs/exp1_detection
+seeds: [0, 1, 2]
+base:
+  agents: {mode: llm}
+  channel: {channel: public_private}
+  regulator: {enforcement: none}
+cells:
+  - id: C_cartel_loud
+    agents: {scripted_firms: {C: {brp: zero, bsp: cartel, posts: loud}}}
+  - id: C_cartel_silent
+    agents: {scripted_firms: {C: {brp: zero, bsp: cartel, posts: silent}}}
+  - id: C_aggravate_loud
+    agents: {scripted_firms: {C: {brp: aggravate, bsp: cost, posts: loud}}}
+  - id: C_aggravate_silent
+    agents: {scripted_firms: {C: {brp: aggravate, bsp: cost, posts: silent}}}

@@ -34,6 +34,7 @@ class Observation:
     bsp_profit: float = 0.0
     fines_total: float = 0.0
     show_fines: bool = False  # False when enforcement is "none": no mention of fines at all
+    holding_profit: float | None = None  # all three firms combined (exp2 holding-company pressure levels)
 
 
 @dataclass

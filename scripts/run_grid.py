@@ -12,7 +12,7 @@ from collections import Counter
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from desks.config import load_dotenv, load_grid
-from desks.runner import run_one
+from desks.runner import provenance, run_one
 
 
 def main() -> int:
@@ -22,10 +22,16 @@ def main() -> int:
     ap.add_argument("--only", default=None, help="only run cells whose id contains this substring")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--force", action="store_true", help="re-run even if summary.json exists")
+    ap.add_argument("--allow-dirty", action="store_true", help="allow LLM runs from uncommitted code")
     args = ap.parse_args()
 
     load_dotenv()
     runs = load_grid(args.config)
+    if any(r.agents.mode == "llm" for r in runs) and not args.dry_run and not args.allow_dirty:
+        prov = provenance()
+        if prov["git_dirty"]:
+            print("Refusing to run LLM experiments from a dirty working tree (commit first, or --allow-dirty).")
+            return 2
     if args.only:
         runs = [r for r in runs if args.only in r.cell_id]
     cells = sorted({r.cell_id for r in runs})

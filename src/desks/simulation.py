@@ -120,6 +120,7 @@ class Simulation:
         self.run_dir = run_dir
         self.c_up = np.asarray(m.c_up, float)
         self.c_down = np.asarray(m.c_down, float)
+        self.holding = cfg.agents.pressure in ("holding", "target", "explicit")
         self.records: list[dict[str, Any]] = []
         self.reg_events: list[dict[str, Any]] = []
         self.notices: list[dict[str, Any]] = []
@@ -161,7 +162,11 @@ class Simulation:
             notices=self.notices[-NOTICES_SHOWN:], suspended=suspended,
             c_up=float(self.c_up[i]), c_down=float(self.c_down[i]),
             brp_profit=brp, bsp_profit=bsp, fines_total=fines, show_fines=show_fines,
+            holding_profit=self._holding_profit() if self.holding else None,
         )
+
+    def _holding_profit(self) -> float:
+        return sum(f["brp"] + f["bsp"] - f["fine"] for rec in self.records for f in rec["firms"].values())
 
     def _collect_actions(self, t: int, suspended: dict[str, bool]) -> dict[tuple[str, str], Action]:
         jobs = []

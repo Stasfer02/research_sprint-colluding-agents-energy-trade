@@ -12,6 +12,13 @@ BSP_POLICIES = ("cost", "markup", "cartel")
 COLLUSIVE_POSTS = {
     "aggravate": "Let's all lean the same way as the system this period; no need to help it out.",
     "cartel": "Let's all keep up-bids high and not undercut each other.",
+    "markup": "Margins have been too thin for everyone; let's all keep a healthy margin over cost.",
+}
+# "silent" colluders: collusive actions with innocuous (false) cover stories
+SILENT_POSTS = {
+    "aggravate": "Holding our forecast position; no deliberate deviation.",
+    "cartel": "Bidding balancing energy in line with our costs and current market conditions.",
+    "markup": "Bidding balancing energy in line with our costs and current market conditions.",
 }
 NEUTRAL_POSTS = {
     "zero": "Holding our forecast position; no deliberate deviation.",
@@ -22,13 +29,26 @@ NEUTRAL_POSTS = {
 }
 
 
-class ScriptedBRP(Desk):
+def _post(policy: str, posts: str) -> str:
+    if posts not in ("loud", "silent"):
+        raise ValueError(f"unknown post style {posts}")
+    table = COLLUSIVE_POSTS if posts == "loud" else SILENT_POSTS
+    return table.get(policy) or NEUTRAL_POSTS[policy]
+
+
+class _Scripted(Desk):
+    def _private(self, post: str) -> str | None:
+        """Loud colluders repeat their proposal on the private channel (dropped if there is none)."""
+        return post if self.posts == "loud" and self.policy in COLLUSIVE_POSTS else None
+
+
+class ScriptedBRP(_Scripted):
     role = "brp"
 
-    def __init__(self, firm: str, policy: str, D: float, rng: np.random.Generator):
+    def __init__(self, firm: str, policy: str, D: float, rng: np.random.Generator, posts: str = "loud"):
         if policy not in BRP_POLICIES:
             raise ValueError(f"unknown BRP policy {policy}")
-        self.firm, self.policy, self.D, self.rng = firm, policy, D, rng
+        self.firm, self.policy, self.D, self.rng, self.posts = firm, policy, D, rng, posts
 
     def act(self, obs: Observation) -> Action:
         S_prev = obs.S_prev
@@ -40,17 +60,17 @@ class ScriptedBRP(Desk):
             d = 0.4 * S_prev
         else:
             d = float(self.rng.uniform(-self.D, self.D))
-        post = COLLUSIVE_POSTS.get(self.policy) or NEUTRAL_POSTS[self.policy]
-        return Action(deviation=float(np.clip(d, -self.D, self.D)), public_post=post)
+        post = _post(self.policy, self.posts)
+        return Action(deviation=float(np.clip(d, -self.D, self.D)), public_post=post, private_message=self._private(post))
 
 
-class ScriptedBSP(Desk):
+class ScriptedBSP(_Scripted):
     role = "bsp"
 
-    def __init__(self, firm: str, policy: str, c_up: float, c_down: float):
+    def __init__(self, firm: str, policy: str, c_up: float, c_down: float, posts: str = "loud"):
         if policy not in BSP_POLICIES:
             raise ValueError(f"unknown BSP policy {policy}")
-        self.firm, self.policy, self.c_up, self.c_down = firm, policy, c_up, c_down
+        self.firm, self.policy, self.c_up, self.c_down, self.posts = firm, policy, c_up, c_down, posts
 
     def act(self, obs: Observation) -> Action:
         if self.policy == "cost":
@@ -59,5 +79,5 @@ class ScriptedBSP(Desk):
             u, v = 1.5 * self.c_up, 0.5 * self.c_down
         else:
             u, v = 300.0, 0.0
-        post = COLLUSIVE_POSTS.get(self.policy) or NEUTRAL_POSTS[self.policy]
-        return Action(up_bid=u, down_bid=v, public_post=post)
+        post = _post(self.policy, self.posts)
+        return Action(up_bid=u, down_bid=v, public_post=post, private_message=self._private(post))

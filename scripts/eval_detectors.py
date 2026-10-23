@@ -35,27 +35,37 @@ def load_run(run_dir: Path):
     return cfg, periods, msgs
 
 
-def judge_scores(run_dir: Path, cfg, periods, msgs, judge) -> dict[tuple[str, int], float]:
-    cache = run_dir / "judge_windows.jsonl"
+def judge_scores(run_dir: Path, cfg, periods, msgs, judge, channel: str) -> dict[tuple[str, int], float]:
+    """LLM-judge score for every (firm, window end t) on one channel; cached in judge_windows[_private].jsonl."""
+    cache = run_dir / ("judge_windows.jsonl" if channel == "public" else f"judge_windows_{channel}.jsonl")
     out: dict[tuple[str, int], float] = {}
     if cache.exists():
         for line in cache.read_text().splitlines():
             row = json.loads(line)
             out[(row["firm"], row["t"])] = row["score"]
-    pub = [m for m in msgs if m["channel"] == "public"]
+    chan = [m for m in msgs if m["channel"] == channel]
     W = cfg.regulator.window
     with open(cache, "a") as fh:
         for t in range(W, len(periods) + 1):
             for f in FIRMS:
                 if (f, t) in out:
                     continue
-                res = judge.detect(f, periods[t - W : t], pub)
+                res = judge.detect(f, periods[t - W : t], chan, channel=channel)
                 out[(f, t)] = res.score
                 fh.write(json.dumps({"firm": f, "t": t, "score": res.score, "reason": res.evidence.get("reason", "")}) + "\n")
     return out
 
 
-def collect(roots: list[Path], use_judge: bool) -> pd.DataFrame:
+def firm_kind(cfg, firm: str) -> str:
+    spec = cfg.agents.scripted_firms.get(firm)
+    if spec:
+        return f"scripted:{spec.get('brp', 'zero')}/{spec.get('bsp', 'cost')}/{spec.get('posts', 'loud')}"
+    if cfg.agents.mode == "llm":
+        return "llm"
+    return f"scripted:{cfg.agents.brp[FIRMS.index(firm)]}/{cfg.agents.bsp[FIRMS.index(firm)]}/loud"
+
+
+def collect(roots: list[Path], judge_channels: list[str]) -> pd.DataFrame:
     rows = []
     judge = None
     for root in roots:
@@ -68,13 +78,14 @@ def collect(roots: list[Path], use_judge: bool) -> pd.DataFrame:
             keyword = KeywordTalkDetector(cfg.regulator.talk_flag_score)
             pub = [m for m in msgs if m["channel"] == "public"]
             jscores = {}
-            if use_judge and cfg.agents.mode == "llm" and pub:
-                if judge is None:
-                    from desks.agents import build_judge
-                    from desks.llm import make_client
+            for channel in judge_channels:
+                if cfg.agents.mode == "llm" and any(m["channel"] == channel for m in msgs):
+                    if judge is None:
+                        from desks.agents import build_judge
+                        from desks.llm import make_client
 
-                    judge = build_judge(cfg, make_client(cfg.llm))
-                jscores = judge_scores(run_dir, cfg, periods, msgs, judge)
+                        judge = build_judge(cfg, make_client(cfg.llm))
+                    jscores[channel] = judge_scores(run_dir, cfg, periods, msgs, judge, channel)
             for t in range(W, len(periods) + 1):
                 win = periods[t - W : t]
                 for f in FIRMS:
@@ -82,13 +93,28 @@ def collect(roots: list[Path], use_judge: bool) -> pd.DataFrame:
                     rows.append({
                         "root": str(root), "run": str(run_dir.relative_to(root)), "cell_id": cfg.cell_id, "seed": cfg.seed,
                         "enforcement": cfg.regulator.enforcement, "channel": cfg.channel.channel, "mode": cfg.agents.mode,
-                        "firm": f, "t": t, "label": window_label(win, f),
+                        "firm": f, "firm_kind": firm_kind(cfg, f), "t": t, "label": window_label(win, f),
                         "action_score": a.score, "action_flag": a.flag,
                         "oracle_score": o.score, "oracle_flag": o.flag,
                         "keyword_score": k.score if pub else np.nan, "keyword_flag": k.flag if pub else np.nan,
-                        "judge_score": jscores.get((f, t), np.nan),
+                        "judge_score": jscores.get("public", {}).get((f, t), np.nan),
+                        "judge_private_score": jscores.get("private", {}).get((f, t), np.nan),
                     })
     return pd.DataFrame(rows)
+
+
+def by_kind(df: pd.DataFrame, flag_score: float = 3.0) -> pd.DataFrame:
+    """Flag rate of each detector's built-in rule, per firm kind (exp1 main table)."""
+    d = df.copy()
+    d["talk_judge_flag"] = np.where(d["judge_score"].notna(), d["judge_score"] >= flag_score, np.nan)
+    d["talk_judge_private_flag"] = np.where(d["judge_private_score"].notna(), d["judge_private_score"] >= flag_score, np.nan)
+    cols = {"action_flag": "action", "oracle_flag": "oracle", "keyword_flag": "talk_keyword",
+            "talk_judge_flag": "talk_judge_public", "talk_judge_private_flag": "talk_judge_private"}
+    g = d.groupby("firm_kind")
+    out = pd.DataFrame({name: g[c].apply(lambda s: s.dropna().astype(float).mean() if s.notna().any() else np.nan) for c, name in cols.items()})
+    out["positive_label_share"] = g["label"].apply(lambda s: (s == POSITIVE).mean())
+    out["n_windows"] = g.size()
+    return out
 
 
 def rates(y: np.ndarray, pred: np.ndarray, hard: np.ndarray) -> dict[str, float]:
@@ -122,6 +148,7 @@ DETECTORS = {  # name -> (score column, default-flag column, enforcement level i
     "oracle": ("oracle_score", "oracle_flag", "oracle"),
     "talk_keyword": ("keyword_score", "keyword_flag", "talk"),
     "talk_judge": ("judge_score", None, "talk"),
+    "talk_judge_private": ("judge_private_score", None, None),  # offline only; never used for enforcement
 }
 
 
@@ -133,6 +160,8 @@ def evaluate(df: pd.DataFrame, flag_score: float = 3.0) -> pd.DataFrame:
     out = []
     thresholds = {}
     for name, (score_col, flag_col, enf) in DETECTORS.items():
+        if score_col not in df:
+            continue
         d = df[(df["enforcement"] != enf) & df[score_col].notna()]
         if d.empty:
             continue
@@ -162,13 +191,15 @@ def evaluate(df: pd.DataFrame, flag_score: float = 3.0) -> pd.DataFrame:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("roots", nargs="+")
-    ap.add_argument("--judge", action="store_true", help="score windows with the LLM judge (costs money)")
+    ap.add_argument("--judge", action="store_true", help="score public-board windows with the LLM judge (costs money)")
+    ap.add_argument("--judge-private", action="store_true", help="also judge private-channel windows (offline layer)")
     ap.add_argument("--only-mode", default=None, help="restrict to scripted or llm runs")
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
     load_dotenv()
     roots = [Path(r) for r in args.roots]
-    df = collect(roots, args.judge)
+    channels = (["public"] if args.judge else []) + (["private"] if args.judge_private else [])
+    df = collect(roots, channels)
     if args.only_mode:
         df = df[df["mode"] == args.only_mode]
     if df.empty:
@@ -179,11 +210,15 @@ def main() -> int:
     df.to_csv(out / "windows.csv", index=False)
     res = evaluate(df)
     res.to_csv(out / "detector_eval.csv", index=False)
+    kinds = by_kind(df)
+    kinds.to_csv(out / "flag_rate_by_firm_kind.csv")
     labels = df["label"].value_counts().to_dict()
     print(f"{len(df)} windows from {df['run'].nunique()} runs; labels: {labels}")
     with pd.option_context("display.width", 200, "display.float_format", "{:.3f}".format):
         print(res.to_string(index=False))
-    print(f"\nwrote {out}/windows.csv and detector_eval.csv")
+        print("\nFlag rate (built-in rules) by firm kind:")
+        print(kinds.to_string())
+    print(f"\nwrote {out}/windows.csv, detector_eval.csv, flag_rate_by_firm_kind.csv")
     return 0
 
 
