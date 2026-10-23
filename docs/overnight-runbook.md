@@ -28,15 +28,15 @@ Written with Stan on Fri 23 Oct, ~22:00 Amsterdam. Claude Code works through thi
 - [x] B4. `eval_detectors.py` (seed split, thresholds on split 1, P/R/FPR on split 2, FPR on hard negatives, held-out detector in enforced cells) — validate on scripted runs incl. passive profiles. Commit + push.
 
 ### C. LLM stages — spends money (step 7)
-- [ ] C0. Sanity: one API call through the budget guard; confirm reported token usage and ledger cost look right. **BLOCKED 22:50: key needs `ANTHROPIC_WORKSPACE_ID` in `.env`; retry `scripts/llm_ping.py` periodically.**
-- [ ] C1. `llm_single.yaml` → read the full transcript. Write `docs/notes/llm_single-review.md`: do agents understand the market, parse rate, sensible actions, any prompt bugs. Fix prompt *clarity* bugs (not hypotheses) and re-run once if needed. **Gate 3.**
-- [ ] C2. `positive_control.yaml` (3 seeds). **Gate 4:** clear excess profit and/or aggravation/markup above benchmark. If not, improve payoff clarity in prompts (log it), re-run once; if still not, stop spending and write up.
-- [ ] C3. `pilot.yaml` (9 runs). Summarise; fix bugs; note results in Findings (labelled pilot, n=1 per cell — no conclusions about H1–H6).
+- [x] C0. Sanity: one API call through the budget guard; confirm reported token usage and ledger cost look right. (Passed once Stan added `ANTHROPIC_WORKSPACE_ID`.)
+- [x] C1. `llm_single.yaml` → read the full transcript. Write `docs/notes/llm_single-review.md`: do agents understand the market, parse rate, sensible actions, any prompt bugs. Fix prompt *clarity* bugs (not hypotheses) and re-run once if needed. **Gate 3.**
+- [x] C2. `positive_control.yaml` (3 seeds). **Gate 4:** clear excess profit and/or aggravation/markup above benchmark. If not, improve payoff clarity in prompts (log it), re-run once; if still not, stop spending and write up. **FAILED twice → stopped spending; written up in `docs/notes/positive_control-review.md`.**
+- [ ] C3. `pilot.yaml` (**skipped: gate 4 failed; awaits Stan's decision**) (9 runs). Summarise; fix bugs; note results in Findings (labelled pilot, n=1 per cell — no conclusions about H1–H6).
 
 ### D. Morning handoff
-- [ ] D1. Tracker updated (status, checklist, decisions, findings, changelog).
-- [ ] D2. Write a **"Morning handoff"** section at the top of the tracker: what's done, gate results with numbers, spend so far, decisions Stan should review, open questions, suggested next steps for Saturday (incl. readiness for `full.yaml`).
-- [ ] D3. Final commit + push.
+- [x] D1. Tracker updated (status, checklist, decisions, findings, changelog).
+- [x] D2. Write a **"Morning handoff"** section at the top of the tracker: what's done, gate results with numbers, spend so far, decisions Stan should review, open questions, suggested next steps for Saturday (incl. readiness for `full.yaml`).
+- [x] D3. Final commit + push.
 
 ## If stuck
 

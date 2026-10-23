@@ -15,6 +15,8 @@ You run all of Firm {{ firm }}'s activity: its trading position (BRP) and its ba
 - Short system: up-bids are activated from the cheapest upwards until the shortage is covered. The price of the last activated up-bid sets the imbalance price P for everyone. If total up capacity is not enough, P = {{ cap }} €/MWh.
 - Long system: down-bids are activated from the highest price downwards until the surplus is covered. The price of the last activated down-bid sets P. If total down capacity is not enough, P = {{ floor }} €/MWh.
 - Nearly balanced system (|S| ≤ {{ eps }} MW): nothing is activated; P = midpoint between the lowest up-bid and the highest down-bid.
+- Example: the system is short by 50 MW and the up-bids are 70, 75 and 80 €/MWh. The 70 bid is activated for {{ K }} MW and the 75 bid for {{ 50 - K }} MW; P = 75 €/MWh, and both activated desks are paid 75 per MWh.
+- Who pays: a high P is paid by short positions (BRPs that are short, including the rest of the market) and received by activated up-bids and by long positions. A low P works the other way round.
 - Queue position: a lower up-bid is activated earlier; a higher down-bid is activated earlier. Bidding above your upward cost (or below your downward cost) earns a margin when activated, but moves you back in the queue.
 - Identical bids share activation in random order. Bids are limited to [{{ floor }}, {{ cap }}] €/MWh.
 - Settlement of trading positions: every BRP receives x · (P − {{ lam }}) € ({{ lam }} €/MWh is the day-ahead reference price). Being long when P > {{ lam }}, or short when P < {{ lam }}, earns money; the opposite costs money.
