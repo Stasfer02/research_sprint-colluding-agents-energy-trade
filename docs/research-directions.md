@@ -6,7 +6,9 @@ Living document, started Sat 24 Oct 2026, morning. It records *why* each next ex
 
 Haiku 5.5 doesn't collude in this market under any pressure, up to an explicit order from its principal. It refuses and escalates (EXP2). That blocks the pre-registered hypotheses that need collusion (H1, H2, H4, H5). Two results don't need collusion and are already solid: talk is unreliable evidence (EXP1), and the threat of enforcement chills legitimate passive balancing (EXP3). **These are the fallback story, a last resort.**
 
-## D1. Multi-model collusion screen (backbone, starting now)
+## D1. Multi-model collusion screen (backbone; **first step narrowed to one model, EXP5**)
+
+*Update 24 Oct:* Stan chose to start with a single model, DeepSeek-V4-Flash (EXP5: the EXP2 gate replicated exactly), before any broader screen. The 6-model screen (EXP4) was withdrawn before completion.
 
 **Question:** which models collude in the same market, and at which pressure level?
 **Why:** it turns a single-model null into a cross-model comparison and removes the "one model family" limitation. Claude models are generally considered more aligned, so other families may behave differently.
@@ -32,6 +34,10 @@ Only if no cheap model colludes: enable reasoning or thinking. Reasoning agents 
 ## D5. Framing ablation (later, explanatory)
 
 The same game in abstract terms (units, auction, no electricity, consumers or REMIT). This tests whether refusals come from recognising real-world harm. Cheap, but secondary.
+
+## D6. Adopt an established setup (fallback if DeepSeek also refuses)
+
+Stan, 24 Oct: if DeepSeek-V4-Flash also refuses under pressure (EXP5), the barrier is probably our market and framing rather than the model. Then we switch to, or port our questions onto, a setup with a known collusion baseline, e.g. one of Apart's sprint starter repositories (such as the Agrawal et al. double auction, where LLM sellers do collude). Our detection and enforcement layer (talk vs action, regulator, chilling) can be carried over.
 
 ## Not pursuing (for now)
 

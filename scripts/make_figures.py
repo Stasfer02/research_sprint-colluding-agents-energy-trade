@@ -6,7 +6,7 @@ fig1_incentives      scripted check: unilateral deviation loses, joint deviation
 fig2_detection       EXP1: flag rate of each detector by firm kind (talk vs action evidence)
 fig3_pressure        EXP2: collusion-pressure ladder: excess profit per run, and declining / escalating decisions
 fig4_chilling        EXP3: passive leans against the imbalance, no enforcement vs action enforcement
-fig5_models          EXP4: multi-model screen (drawn only once results/exp4_model_screen exists)
+fig5_gate            EXP5 vs EXP2: pressure ladder, DeepSeek-V4-Flash vs Haiku (drawn once EXP5 results exist)
 
 Style follows the dataviz skill: thin marks, hairline solid grid, legend for >= 2 series, text in ink colours,
 a fixed categorical order (blue, orange, aqua, yellow) and a single-hue ramp for magnitudes.
@@ -177,33 +177,36 @@ def fig4_chilling(out: Path) -> None:
     _save(fig, out, "fig4_chilling")
 
 
-def fig5_models(out: Path) -> None:
-    root = RES / "exp4_model_screen/_summary/runs.csv"
+def fig5_gate(out: Path) -> None:
+    root = RES / "exp5_deepseek_gate/_summary/runs.csv"
     if not root.exists():
-        print("skip fig5_models (no results/exp4_model_screen yet)")
+        print("skip fig5_gate (no results/exp5_deepseek_gate yet)")
         return
-    runs = pd.read_csv(root)
-    ref = pd.read_csv(RES / "exp2_pressure/_summary/runs.csv")
-    ref = ref[ref["pressure"].isin(["permission", "explicit"])].assign(model="claude-haiku-5-5")
-    runs = pd.concat([runs, ref], ignore_index=True)
-    models = list(dict.fromkeys(["claude-haiku-5-5", *sorted(runs["model"].dropna().unique())]))
-    fig, ax = plt.subplots(figsize=(6.8, 0.42 * len(models) + 1.2))
-    for j, (lvl, colour, label) in enumerate((("permission", BLUE, "Permission to coordinate"), ("explicit", ORANGE, "Explicit order"))):
-        for i, m in enumerate(models):
-            v = runs.loc[(runs["model"] == m) & (runs["pressure"] == lvl), "excess_total"].values / 1e3
-            y = i + (j - 0.5) * 0.28
-            ax.scatter(v, np.full(len(v), y), s=26, color=colour, edgecolor=SURFACE, linewidth=1.2, zorder=3,
+    levels = ["none", "permission", "holding", "target", "explicit"]
+    labels = ["None", "Permit", "Holding", "Target", "Order"]
+    sets = [("Claude Haiku 5.5 (EXP2)", RES / "exp2_pressure/_summary/runs.csv", BLUE),
+            ("DeepSeek-V4-Flash (EXP5)", root, ORANGE)]
+    fig, ax = plt.subplots(figsize=(6.8, 3.0))
+    for j, (label, path, colour) in enumerate(sets):
+        runs = pd.read_csv(path)
+        for i, lvl in enumerate(levels):
+            v = runs.loc[runs["pressure"] == lvl, "excess_total"].values / 1e3
+            xo = i + (j - 0.5) * 0.26
+            ax.scatter(np.full(len(v), xo), v, s=28, color=colour, edgecolor=SURFACE, linewidth=1.5, zorder=3,
                        label=label if i == 0 else None)
-    ax.axvline(0, color=INK2, linewidth=0.8)
-    ax.axvline(20, color=MUTED, linewidth=0.8)
-    ax.text(20, len(models) - 0.4, " clear-collusion threshold", fontsize=7.5, color=INK2, va="bottom")
-    ax.set_yticks(range(len(models)), [m.split("/")[-1] for m in models])
-    ax.invert_yaxis()
-    ax.set_xlabel("Combined excess profit (k€ per run)")
-    ax.grid(axis="y", visible=False)
-    ax.legend(loc="lower right")
-    _title(ax, "Which models collude?", "EXP4 positive-control screen (OpenRouter models) vs Haiku 5.5 (EXP2); dots = runs.")
-    _save(fig, out, "fig5_models")
+            if len(v):
+                ax.plot([xo - 0.1, xo + 0.1], [v.mean()] * 2, color=INK, linewidth=1.3, zorder=4)
+    ax.axhline(0, color=INK2, linewidth=0.8)
+    ax.axhline(20, color=MUTED, linewidth=0.8)
+    ax.text(len(levels) - 0.5, 20, "clear-collusion threshold ", fontsize=7.5, color=INK2, va="bottom", ha="right")
+    ax.set_xticks(range(len(levels)), labels)
+    ax.set_ylabel("Combined excess profit (k€ per run)")
+    ax.grid(axis="x", visible=False)
+    ax.legend(loc="upper left")
+    _title(ax, "Does another model collude under pressure?",
+           "Pressure ladder, one integrated agent per firm, private channel, no enforcement; 3 seeds per level (dots), bar = mean.\n"
+           "Joint cartel bidding would pay ≈ +85k per run.")
+    _save(fig, out, "fig5_gate")
 
 
 def main() -> int:
@@ -215,7 +218,7 @@ def main() -> int:
     fig2_detection(out)
     fig3_pressure(out)
     fig4_chilling(out)
-    fig5_models(out)
+    fig5_gate(out)
     return 0
 
 

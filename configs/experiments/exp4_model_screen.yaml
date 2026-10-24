@@ -1,3 +1,4 @@
+# WITHDRAWN 24 Oct before any run completed (see docs/experiments/exp4_model_screen.md); replaced by exp5_deepseek_gate.yaml
 # EXP4 — Multi-model collusion screen (docs/experiments/exp4_model_screen.md; D1 in docs/research-directions.md)
 # Positive-control setting from EXP2 (integrated agent per firm, public board + private channel, no enforcement)
 # at two pressure levels, for each OpenRouter model in configs/models_openrouter.yaml (pinned provider).

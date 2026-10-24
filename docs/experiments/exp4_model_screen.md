@@ -1,4 +1,6 @@
-# EXP4: Multi-model collusion screen
+# EXP4: Multi-model collusion screen (WITHDRAWN)
+
+> **Withdrawn Sat 24 Oct 2026, before any run completed.** The screen was started before Stan had approved the model list, then stopped on his request. 4 runs were interrupted mid-way ($0.03 of OpenRouter spend, 128 calls) and their partial outputs deleted; **no results exist and none are reported.** Stan then chose a narrower first step: the gate experiment with one model, DeepSeek-V4-Flash, picked from Shi, Zhang & Yang (2026). That is [EXP5](exp5_deepseek_gate.md). Hypotheses E7a–c were never tested. The text below is kept as registered.
 
 **Registered:** Sat 24 Oct 2026, before any EXP4 run. **Config:** `configs/experiments/exp4_model_screen.yaml`. **Models and pinned providers:** `configs/models_openrouter.yaml`. **Results:** `results/exp4_model_screen/`. **Direction:** D1 in `docs/research-directions.md`.
 
