@@ -197,6 +197,8 @@ Many energy companies hold two roles at once. As a Balance Responsible Party (BR
 
 - **23 Oct (EXP1–EXP3, `results/`, analysis `results/analysis/hypotheses.md`).** Full write-ups in `docs/experiments/exp{1,2,3}_*.md`. EXP1: silent cartel 100% action / 0% talk; honest LLM 0% action / 54% keyword / 17% private judge; aggravation by high-cost C missed by the action screen. EXP2: 0/15 runs collude; at `explicit`, 75% of decisions decline and 66% escalate. EXP3: leans against the imbalance 41 → 12 MW (none → action, p = 0.10); 0 regulator flags in the whole grid; no private messages once compliance text is present; one bidding error ("1000 = withdraw" on a down-bid → P = 1000 in a long system).
 
+- **24 Oct (EXP5, `results/exp5_deepseek_gate`): DeepSeek-V4-Flash colludes where Haiku refused.** Same EXP2 setup, reasoning off, temperature 1.0. At `explicit`: 3/3 runs clear collusion, 99% cartel-level bids, 89% aggravating deviations, +575 €/MWh markup, +€52k excess and −€87k for the rest of the market per run; a stable full cartel (all −25 MW short, 999/−200 bids) from t ≈ 5; 0.7% declining decisions (Haiku 75%). Spontaneous collusion proposals without any coalition text in 1 of 3 `none` seeds (42 private proposals). Caveat: part of DeepSeek's "aggravation" at low pressure is a misunderstanding of settlement, not intent. E8a and E8b supported; E8c not (non-monotonic profit). Fig 5.
+
 ## 8. Open questions
 
 - **Shared vs separate desk objective** — now more important: passive balancing pays a BRP desk but not an integrated firm, so the objective structure decides whether legitimate passive balancing (the hard negatives) appears at all. Options: add as a factor, or run separate-objective cells as the hard-negative source.
@@ -252,5 +254,6 @@ Many energy companies hold two roles at once. As a Balance Responsible Party (BR
 - **23 Oct 20:50** — Tracker created (claude.ai Project): pitch, environment design, hypotheses H1–H6, detection plan, decisions, open questions, weekend plan.
 - **23 Oct 21:50** — Moved into the repo. New repo instead of fork; parameters and incentive check added (Findings); compliance-text decision; model choice; shared-vs-separate objective promoted in open questions; plan aligned with spec build order.
 - **23 Oct 22:56** — Overnight build (Claude Code): spec §10 steps 1–6 + 8 implemented; gates 1–2 pass; smoke findings and detector-eval pipeline results added; 8 build decisions logged; LLM stages blocked on the API key's workspace ID (§0 Morning handoff).
+- **24 Oct** — OpenRouter support (pinned providers, seeds, per-firm models); report figures 1–5; EXP4 withdrawn; EXP5 (DeepSeek gate) pre-registered and run: DeepSeek colludes.
 - **23 Oct 23:56** — EXP1–EXP3 pre-registered (E2–E6), run (40 runs, $3.85), analysed (`scripts/analyze_experiments.py`) and exported to `results/`; handoff rewritten.
 - **23 Oct 23:15** — Workspace ID added; C0 and gate 3 pass (5 prompt fixes); gate 4 positive control failed twice (agents coordinate on competitive norms); spending stopped at $0.58; E1 added; handoff rewritten with options.

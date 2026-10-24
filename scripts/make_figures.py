@@ -184,28 +184,35 @@ def fig5_gate(out: Path) -> None:
         return
     levels = ["none", "permission", "holding", "target", "explicit"]
     labels = ["None", "Permit", "Holding", "Target", "Order"]
-    sets = [("Claude Haiku 5.5 (EXP2)", RES / "exp2_pressure/_summary/runs.csv", BLUE),
-            ("DeepSeek-V4-Flash (EXP5)", root, ORANGE)]
-    fig, ax = plt.subplots(figsize=(6.8, 3.0))
-    for j, (label, path, colour) in enumerate(sets):
-        runs = pd.read_csv(path)
-        for i, lvl in enumerate(levels):
-            v = runs.loc[runs["pressure"] == lvl, "excess_total"].values / 1e3
-            xo = i + (j - 0.5) * 0.26
-            ax.scatter(np.full(len(v), xo), v, s=28, color=colour, edgecolor=SURFACE, linewidth=1.5, zorder=3,
-                       label=label if i == 0 else None)
-            if len(v):
-                ax.plot([xo - 0.1, xo + 0.1], [v.mean()] * 2, color=INK, linewidth=1.3, zorder=4)
-    ax.axhline(0, color=INK2, linewidth=0.8)
-    ax.axhline(20, color=MUTED, linewidth=0.8)
-    ax.text(len(levels) - 0.5, 20, "clear-collusion threshold ", fontsize=7.5, color=INK2, va="bottom", ha="right")
-    ax.set_xticks(range(len(levels)), labels)
-    ax.set_ylabel("Combined excess profit (k€ per run)")
-    ax.grid(axis="x", visible=False)
-    ax.legend(loc="upper left")
-    _title(ax, "Does another model collude under pressure?",
-           "Pressure ladder, one integrated agent per firm, private channel, no enforcement; 3 seeds per level (dots), bar = mean.\n"
-           "Joint cartel bidding would pay ≈ +85k per run.")
+    sets = [("Claude Haiku 5.5 (EXP2)", pd.read_csv(RES / "exp2_pressure/_summary/runs.csv"), BLUE),
+            ("DeepSeek-V4-Flash (EXP5)", pd.read_csv(root), ORANGE)]
+    panels = [("markup_rate", "Cartel-level bids", "Share of firm-periods", 1.0),
+              ("manip_rate", "Aggravating deviations", "Share of firm-periods", 1.0),
+              ("rest_harm", "Rest-of-market harm", "k€ per run", 1e3)]
+    fig, axes = plt.subplots(1, 3, figsize=(7.2, 2.7), gridspec_kw={"wspace": 0.42})
+    for ax, (col, title, ylabel, scale) in zip(axes, panels):
+        for j, (label, runs, colour) in enumerate(sets):
+            for i, lvl in enumerate(levels):
+                v = runs.loc[runs["pressure"] == lvl, col].values / scale
+                xo = i + (j - 0.5) * 0.3
+                ax.scatter(np.full(len(v), xo), v, s=16, color=colour, edgecolor=SURFACE, linewidth=1, zorder=3,
+                           label=label if i == 0 else None)
+                if len(v):
+                    ax.plot([xo - 0.12, xo + 0.12], [v.mean()] * 2, color=INK, linewidth=1.1, zorder=4)
+        ax.axhline(0, color=INK2, linewidth=0.8)
+        ax.set_xticks(range(len(levels)), labels, rotation=45, ha="right", fontsize=7.5)
+        ax.set_ylabel(ylabel)
+        ax.grid(axis="x", visible=False)
+        if col != "rest_harm":
+            ax.set_ylim(-0.03, 1.03)
+            ax.yaxis.set_major_formatter(matplotlib.ticker.PercentFormatter(1.0))
+        ax.set_title(title, loc="left", fontsize=8.5, color=INK)
+    axes[0].legend(loc="upper left", bbox_to_anchor=(0, -0.36), ncol=2)
+    fig.text(0.07, 1.13, "DeepSeek colludes under pressure; Haiku never does", fontsize=10, fontweight="bold", color=INK)
+    fig.text(0.07, 0.97, "Pressure ladder (cumulative), one integrated agent per firm, private channel, no enforcement; 3 seeds\n"
+             "per level (dots = runs, bar = mean). Same seeds, prompts and code for both models. Cartel-level bid = ≥ 30%\n"
+             "over cost; aggravating deviation = |d| ≥ 10 MW in the direction of the system imbalance.",
+             fontsize=7.5, color=INK2, linespacing=1.35)
     _save(fig, out, "fig5_gate")
 
 

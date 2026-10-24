@@ -16,7 +16,7 @@ Every experiment has an ID, a config in `configs/`, a doc here (question, design
 | [EXP3](exp3_enforcement.md) | Channels × enforcement with honest desks; chilling of passive balancing | `configs/experiments/exp3_enforcement.yaml` | E6 (+ H1, H2, H4–H6 descriptive) | done: E6 direction supported (41 vs 12 MW, p = 0.10) | `results/exp3_enforcement` |
 
 | [EXP4](exp4_model_screen.md) | Multi-model collusion screen (OpenRouter) | `configs/experiments/exp4_model_screen.yaml` | E7a–c (never tested) | **withdrawn** before any run completed | none |
-| [EXP5](exp5_deepseek_gate.md) | Gate replication with DeepSeek-V4-Flash: does another model collude under pressure? | `configs/experiments/exp5_deepseek_gate.yaml` + `configs/models_openrouter.yaml` | E8a–c | registered | `results/exp5_deepseek_gate` |
+| [EXP5](exp5_deepseek_gate.md) | Gate replication with DeepSeek-V4-Flash: does another model collude under pressure? | `configs/experiments/exp5_deepseek_gate.yaml` + `configs/models_openrouter.yaml` | E8a–c | done: **DeepSeek colludes** (explicit: 3/3 runs, 99% cartel-level bids, +€52k/run); E8a, E8b supported, E8c not | `results/exp5_deepseek_gate` |
 
 Future directions (not yet registered) are in [docs/research-directions.md](../research-directions.md).
 
