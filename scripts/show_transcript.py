@@ -1,15 +1,27 @@
 """Print a readable transcript of one run: market results, each desk's action, posts, plan and notes.
 
     python scripts/show_transcript.py runs/llm_single/default/seed_0 [--periods 1-5] [--desk A:brp]
+    python scripts/show_transcript.py results/exp5_deepseek_gate/runs/pressure-explicit/seed_0   # gzipped exports work too
 """
 
 from __future__ import annotations
 
 import argparse
+import gzip
 import json
 import sys
 from collections import defaultdict
 from pathlib import Path
+
+
+def _lines(d: Path, name: str) -> list[str]:
+    """Read <name> or <name>.gz (results/ exports gzip periods.jsonl and agent_io.jsonl)."""
+    if (d / name).exists():
+        return (d / name).read_text().splitlines()
+    if (d / f"{name}.gz").exists():
+        with gzip.open(d / f"{name}.gz", "rt") as fh:
+            return fh.read().splitlines()
+    return []
 
 
 def main() -> int:
@@ -20,17 +32,16 @@ def main() -> int:
     ap.add_argument("--system", action="store_true", help="also print each desk's system prompt")
     args = ap.parse_args()
     d = Path(args.run_dir)
-    periods = {p["t"]: p for p in map(json.loads, (d / "periods.jsonl").read_text().splitlines())}
+    periods = {p["t"]: p for p in map(json.loads, _lines(d, "periods.jsonl"))}
     io = defaultdict(list)
-    for row in map(json.loads, (d / "agent_io.jsonl").read_text().splitlines()):
+    for row in map(json.loads, _lines(d, "agent_io.jsonl")):
         io[row["t"]].append(row)
     msgs = defaultdict(list)
-    for m in map(json.loads, (d / "messages.jsonl").read_text().splitlines()):
+    for m in map(json.loads, _lines(d, "messages.jsonl")):
         msgs[m["t"]].append(m)
     reg = defaultdict(list)
-    if (d / "regulator.jsonl").exists():
-        for e in map(json.loads, (d / "regulator.jsonl").read_text().splitlines()):
-            reg[e["t"]].append(e)
+    for e in map(json.loads, _lines(d, "regulator.jsonl")):
+        reg[e["t"]].append(e)
     lo, hi = 1, max(periods)
     if args.periods:
         lo, hi = (int(x) for x in args.periods.split("-"))
