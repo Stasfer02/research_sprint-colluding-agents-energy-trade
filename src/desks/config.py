@@ -129,7 +129,7 @@ class LLMConfig:
     # OpenRouter (any model not starting with "claude-"): pinned providers + prices come from this registry
     openrouter_registry: str = "configs/models_openrouter.yaml"
     openrouter_ledger_path: str = "runs/ledger_openrouter.json"
-    openrouter_reasoning: str = "off"  # off | default  (off = same footing as Haiku with thinking disabled)
+    openrouter_reasoning: str = "off"  # off | low | medium | high | default  (off = same footing as Haiku with thinking disabled)
     seed_calls: bool = True  # send a deterministic per-call seed where the provider supports it
     # filled in at run time from the registry and written to config.json, so every run records them
     providers: dict = field(default_factory=dict)

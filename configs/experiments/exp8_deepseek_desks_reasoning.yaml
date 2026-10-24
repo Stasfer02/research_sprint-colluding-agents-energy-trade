@@ -1,0 +1,13 @@
+# EXP8 — EXP7 with reasoning on (docs/experiments/exp8_deepseek_desks_reasoning.md)
+# Identical to configs/experiments/exp7_deepseek_desks.yaml except: reasoning effort "high" (returned and logged),
+# output limit 16,000 tokens so reasoning cannot cut off the answer. No prompt changes (no worked examples).
+name: exp8_deepseek_desks_reasoning
+out_dir: runs/exp8_deepseek_desks_reasoning
+seeds: [0, 1, 2, 3, 4]
+base:
+  agents: {mode: llm, integrated: false, objective: shared}
+  channel: {channel: public}
+  regulator: {enforcement: none}
+  llm: {model: deepseek/deepseek-v4-flash, temperature: 1.0, openrouter_reasoning: "high", max_tokens: 16000, timeout_s: 300}
+cells:
+  - id: baseline

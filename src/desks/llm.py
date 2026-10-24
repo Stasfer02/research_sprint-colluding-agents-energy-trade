@@ -164,8 +164,15 @@ class OpenRouterBackend:
         seed_sent = seed if (seed is not None and info.get("supports_seed")) else None
         if seed_sent is not None:
             kwargs["seed"] = seed_sent
-        if info.get("supports_reasoning") and self.cfg.openrouter_reasoning == "off":
-            extra["reasoning"] = {"enabled": False}
+        if info.get("supports_reasoning"):
+            mode = self.cfg.openrouter_reasoning
+            if mode == "off":
+                extra["reasoning"] = {"enabled": False}
+            elif mode in ("low", "medium", "high"):
+                # reasoning on at a fixed effort; the text is returned (not excluded) so it can be logged
+                extra["reasoning"] = {"effort": mode, "exclude": False}
+            elif mode != "default":
+                raise ValueError(f"unknown openrouter_reasoning {mode!r} (off | low | medium | high | default)")
         kwargs["extra_body"] = extra
         meta = {"provider_pinned": info["provider"], "seed_sent": seed_sent, "temperature_sent": temperature,
                 "reasoning_requested": extra.get("reasoning")}
@@ -189,11 +196,14 @@ class OpenRouterBackend:
         extra = getattr(resp, "model_extra", None) or {}
         uextra = getattr(usage, "model_extra", None) or {}
         details = getattr(usage, "completion_tokens_details", None)
+        msg = choice.message
+        reasoning_text = getattr(msg, "reasoning", None) or (getattr(msg, "model_extra", None) or {}).get("reasoning")
         meta.update({
             "provider": extra.get("provider"),
             "generation_id": resp.id,
             "served_model": resp.model,
             "reasoning_tokens": getattr(details, "reasoning_tokens", None) if details else None,
+            "reasoning_text": reasoning_text,  # the model's visible reasoning when the provider returns it
             "cost_reported": uextra.get("cost"),
         })
         return choice.message.content or "", usage.prompt_tokens, usage.completion_tokens, choice.finish_reason, meta

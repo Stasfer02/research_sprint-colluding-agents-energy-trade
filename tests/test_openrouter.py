@@ -47,6 +47,16 @@ def test_reasoning_default_leaves_model_default(monkeypatch):
     assert "reasoning" not in kw["extra_body"] and "temperature" not in kw and "seed" not in kw
 
 
+def test_reasoning_on_requests_effort_and_returns_text(monkeypatch):
+    b = _backend(monkeypatch, temperature=1.0, openrouter_reasoning="high")
+    kw, meta = b.request_kwargs("s", [{"role": "user", "content": "u"}], "x/with-temp", 4000, seed=1)
+    assert kw["extra_body"]["reasoning"] == {"effort": "high", "exclude": False}
+    assert meta["reasoning_requested"] == {"effort": "high", "exclude": False}
+    b_bad = _backend(monkeypatch, openrouter_reasoning="maximum")
+    with pytest.raises(ValueError, match="openrouter_reasoning"):
+        b_bad.request_kwargs("s", [{"role": "user", "content": "u"}], "x/with-temp", 600, seed=None)
+
+
 def test_router_dispatches_by_model_name(tmp_path):
     a, o = FakeBackend(lambda *_: "a"), FakeBackend(lambda *_: "o")
     prices = {"claude-haiku-5-5": {"input": 1, "output": 1}, "x/with-temp": {"input": 1, "output": 1}}
