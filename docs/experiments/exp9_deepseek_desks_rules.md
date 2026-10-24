@@ -1,5 +1,7 @@
 # EXP9: The EXP8 setup with the market rules stated
 
+> **Note (24 Oct, after the simplification):** this pre-registration record is unchanged. The report's analysis is now `scripts/analyze.py`; scripts named below (`summarize.py`, `analyze_experiments.py`, `code_reasoning.py`) are no longer in the current tree; run them from commit `2ea0394`. See `docs/simplification.md`.
+
 **Registered:** Sat 24 Oct 2026, before any EXP9 run. **Config:** `configs/experiments/exp9_deepseek_desks_rules.yaml`. **Results:** `results/exp9_deepseek_desks_rules/`. **Compared with:** EXP8 (same seeds, so runs are paired).
 
 ## Question

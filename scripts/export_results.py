@@ -1,9 +1,9 @@
 """Copy an experiment's outputs from runs/ (git-ignored) into results/ (committed).
 
-    python scripts/export_results.py runs/exp1_detection results/exp1_detection [--no-raw]
+    python scripts/export_results.py runs/exp9_deepseek_desks_rules results/exp9_deepseek_desks_rules [--no-raw]
 
 Per run it keeps config.json, provenance.json, summary.json, messages.jsonl, regulator.jsonl, judge
-files and reasoning codes (scripts/code_reasoning.py) as is, and gzips periods.jsonl and agent_io.jsonl (full prompts + raw model outputs; LLM sampling
+files and reasoning codes (if any) as is, and gzips periods.jsonl and agent_io.jsonl (full prompts + raw model outputs; LLM sampling
 is not seeded, so these are the only way to reproduce an LLM analysis exactly). `--no-raw` keeps only the
 aggregate _summary/ and _eval/ folders (enough for deterministic scripted grids).
 """

@@ -1,7 +1,7 @@
 """Print a readable transcript of one run: market results, each desk's action, posts, plan and notes.
 
-    python scripts/show_transcript.py runs/llm_single/default/seed_0 [--periods 1-5] [--desk A:brp]
-    python scripts/show_transcript.py results/exp5_deepseek_gate/runs/pressure-explicit/seed_0   # gzipped exports work too
+    python scripts/show_transcript.py runs/exp9_deepseek_desks_rules/baseline/seed_0 [--periods 1-5] [--desk A:brp]
+    python scripts/show_transcript.py results/exp8_deepseek_desks_reasoning/runs/baseline/seed_0   # gzipped exports work too
 """
 
 from __future__ import annotations

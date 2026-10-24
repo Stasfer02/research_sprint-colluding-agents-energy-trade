@@ -1,5 +1,7 @@
 # EXP7: Baseline: six DeepSeek desks at equal market shares
 
+> **Note (24 Oct, after the simplification):** this pre-registration record is unchanged. The report's analysis is now `scripts/analyze.py`; scripts named below (`summarize.py`, `analyze_experiments.py`, `code_reasoning.py`) are no longer in the current tree; run them from commit `2ea0394`. See `docs/simplification.md`.
+
 **Registered:** Sat 24 Oct 2026, before any EXP7 run. **Config:** `configs/experiments/exp7_deepseek_desks.yaml`. **Results:** `results/exp7_deepseek_desks/`.
 
 ## Question

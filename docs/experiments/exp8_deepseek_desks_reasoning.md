@@ -1,5 +1,7 @@
 # EXP8: The EXP7 baseline with reasoning on
 
+> **Note (24 Oct, after the simplification):** this pre-registration record is unchanged. The report's analysis is now `scripts/analyze.py`; scripts named below (`summarize.py`, `analyze_experiments.py`, `code_reasoning.py`) are no longer in the current tree; run them from commit `2ea0394`. See `docs/simplification.md`.
+
 **Registered:** Sat 24 Oct 2026, before any EXP8 run. **Config:** `configs/experiments/exp8_deepseek_desks_reasoning.yaml`. **Results:** `results/exp8_deepseek_desks_reasoning/`.
 
 ## Question

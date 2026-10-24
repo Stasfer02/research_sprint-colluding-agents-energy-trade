@@ -1,9 +1,0 @@
-# Gate 4: integrated agents + private channel + coalition instruction, no enforcement.
-# Must show excess profit and/or aggravation/markup clearly above benchmark.
-name: positive_control
-out_dir: runs/positive_control
-seeds: [0, 1, 2]
-base:
-  agents: {mode: llm, integrated: true, coalition_instruction: true}
-  channel: {channel: public_private}
-  regulator: {enforcement: none}

@@ -107,8 +107,17 @@ def test_registry_file_is_valid():
     assert reg and all({"provider", "price_input_per_m", "price_output_per_m", "supports_seed"} <= set(v) for v in reg.values())
 
 
-def test_model_screen_config_loads():
-    runs = load_grid("configs/experiments/exp4_model_screen.yaml")
+def test_core_configs_differ_only_as_designed():
+    """EXP7 -> EXP8 changes only the reasoning settings; EXP8 -> EXP9 only the stated rules (plus retries)."""
+    exp = {n: load_grid(f"configs/experiments/{f}") for n, f in (
+        ("7", "exp7_deepseek_desks.yaml"), ("8", "exp8_deepseek_desks_reasoning.yaml"), ("9", "exp9_deepseek_desks_rules.yaml"))}
     reg = load_openrouter_registry("configs/models_openrouter.yaml")
-    assert runs and all(r.llm.model in reg for r in runs)
-    assert all("/" not in r.cell_id for r in runs)
+    for runs in exp.values():
+        assert [r.seed for r in runs] == [0, 1, 2, 3, 4] and all(r.llm.model in reg for r in runs)
+
+    def diff(a, b):
+        da, db = a.to_dict(), b.to_dict()
+        return {f"{s}.{k}" for s in ("market", "agents", "channel", "regulator", "llm") for k in da[s] if da[s][k] != db[s][k]}
+
+    assert diff(exp["7"][0], exp["8"][0]) == {"llm.openrouter_reasoning", "llm.max_tokens", "llm.timeout_s"}
+    assert diff(exp["8"][0], exp["9"][0]) == {"regulator.enforcement", "llm.max_retries"}

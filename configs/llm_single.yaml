@@ -1,8 +1,0 @@
-# Gate 3: one LLM run, public board, no enforcement. Read the transcript by hand.
-name: llm_single
-out_dir: runs/llm_single
-seeds: [0]
-base:
-  agents: {mode: llm}
-  channel: {channel: public}
-  regulator: {enforcement: none}

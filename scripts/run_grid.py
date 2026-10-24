@@ -1,6 +1,6 @@
 """Run every (cell × seed) of a grid config. Resumable: skips runs that have summary.json.
 
-    python scripts/run_grid.py configs/smoke.yaml [--workers 4] [--only CELL_SUBSTR] [--dry-run] [--force]
+    python scripts/run_grid.py configs/experiments/exp7_deepseek_desks.yaml [--workers 5] [--only CELL_SUBSTR] [--dry-run] [--force]
 """
 
 from __future__ import annotations
