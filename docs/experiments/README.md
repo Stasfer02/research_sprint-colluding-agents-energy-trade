@@ -1,5 +1,7 @@
 # Experiment registry
 
+> **Core experiment of the paper: [EXP8](exp8_deepseek_desks_reasoning.md)**, with its control [EXP7](exp7_deepseek_desks.md). Paper drafts: [results](../paper/results.md) · [methods](../paper/methods.md). Earlier experiments below used other setups and serve as background.
+
 Every experiment has an ID, a config in `configs/`, a doc here (question, design, pre-registered hypotheses, commands, results) and committed outputs in `results/<id>/`. Raw run directories live in `runs/` (git-ignored). `scripts/export_results.py` copies them into `results/`, keeping full prompts and raw model outputs gzipped. LLM sampling can't be seeded (the API has no temperature or seed control), so those files are what makes an LLM analysis reproducible.
 
 **Provenance.** Every run writes `provenance.json`: git commit, dirty flag, a hash of the prompt templates and constants, package versions and start time. `summary.json` repeats the commit and prompt hash. `scripts/run_grid.py` refuses to start LLM runs from a dirty working tree.

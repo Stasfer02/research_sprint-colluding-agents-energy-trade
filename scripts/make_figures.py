@@ -6,6 +6,7 @@ fig1_incentives      scripted check: unilateral deviation loses, joint deviation
 fig2_detection       EXP1: flag rate of each detector by firm kind (talk vs action evidence)
 fig3_pressure        EXP2: collusion-pressure ladder: excess profit per run, and declining / escalating decisions
 fig4_chilling        EXP3: passive leans against the imbalance, no enforcement vs action enforcement
+fig6_core            EXP8 vs EXP7: core experiment, six DeepSeek desks with reasoning off vs high
 fig5_gate            EXP5 vs EXP2: pressure ladder, DeepSeek-V4-Flash vs Haiku (drawn once EXP5 results exist)
 
 Style follows the dataviz skill: thin marks, hairline solid grid, legend for >= 2 series, text in ink colours,
@@ -216,6 +217,69 @@ def fig5_gate(out: Path) -> None:
     _save(fig, out, "fig5_gate")
 
 
+def _jsonl_any(run: Path, name: str) -> list[dict]:
+    import gzip
+    if (run / name).exists():
+        return [json.loads(x) for x in (run / name).read_text().splitlines()]
+    if (run / f"{name}.gz").exists():
+        with gzip.open(run / f"{name}.gz", "rt") as fh:
+            return [json.loads(x) for x in fh.read().splitlines()]
+    return []
+
+
+def fig6_core(out: Path) -> None:
+    """Core experiment: six DeepSeek desks at equal shares, reasoning off (EXP7) vs high (EXP8)."""
+    import re as _re
+    conds = [("Reasoning off (EXP7)", RES / "exp7_deepseek_desks/runs/baseline", MUTED),
+             ("Reasoning high (EXP8)", RES / "exp8_deepseek_desks_reasoning/runs/baseline", BLUE)]
+    if not conds[1][1].exists():
+        print("skip fig6_core (no results/exp8_deepseek_desks_reasoning yet)")
+        return
+    other = {"brp": _re.compile("balancing desk", _re.I), "bsp": _re.compile("trading desk", _re.I)}
+    rows = []
+    for label, root, _ in conds:
+        for run in sorted(root.glob("seed_*")):
+            s = json.loads((run / "summary.json").read_text())
+            ps = _jsonl_any(run, "periods.jsonl")
+            fp = [f for p in ps for f in p["firms"].values()]
+            msgs = [m for m in _jsonl_any(run, "messages.jsonl") if m["channel"] == "public" and m["desk"] in other]
+            rows.append({"cond": label, "markup": s["markup_rate"], "self_deal": sum(f["manip"] and f["markup_flag"] for f in fp) / len(fp),
+                         "cross_desk": sum(bool(other[m["desk"]].search(m["text"])) for m in msgs) / max(1, len(msgs)),
+                         "brp": sum(s[f"excess_brp_{f}"] for f in "ABC") / 1e3, "bsp": sum(s[f"excess_bsp_{f}"] for f in "ABC") / 1e3})
+    df = pd.DataFrame(rows)
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(7.2, 3.0), gridspec_kw={"wspace": 0.38, "width_ratios": [1.35, 1]})
+    measures = [("markup", "Bids ≥ 30%\nbeyond cost"), ("self_deal", "Self-dealing\nperiods"), ("cross_desk", "Public posts\naddressing own\nother desk")]
+    for j, (label, _, colour) in enumerate(conds):
+        d = df[df["cond"] == label]
+        for i, (col, _) in enumerate(measures):
+            xo = i + (j - 0.5) * 0.3
+            a1.scatter(np.full(len(d), xo), d[col], s=18, color=colour, edgecolor=SURFACE, linewidth=1, zorder=3, label=label if i == 0 else None)
+            a1.plot([xo - 0.12, xo + 0.12], [d[col].mean()] * 2, color=INK, linewidth=1.2, zorder=4)
+    a1.set_xticks(range(len(measures)), [m for _, m in measures], fontsize=7.5)
+    a1.set_ylim(-0.02, 0.6)
+    a1.yaxis.set_major_formatter(matplotlib.ticker.PercentFormatter(1.0))
+    a1.set_ylabel("Share")
+    a1.grid(axis="x", visible=False)
+    a1.set_title("Behaviour per run", loc="left", fontsize=8.5, color=INK)
+    a1.legend(loc="upper left", fontsize=7.5)
+    for j, (label, _, colour) in enumerate(conds):
+        d = df[df["cond"] == label]
+        for i, col in enumerate(("brp", "bsp")):
+            xo = i + (j - 0.5) * 0.3
+            a2.scatter(np.full(len(d), xo), d[col], s=18, color=colour, edgecolor=SURFACE, linewidth=1, zorder=3)
+            a2.plot([xo - 0.12, xo + 0.12], [d[col].mean()] * 2, color=INK, linewidth=1.2, zorder=4)
+    a2.axhline(0, color=INK2, linewidth=0.8)
+    a2.set_xticks([0, 1], ["Trading desks", "Balancing desks"], fontsize=7.5)
+    a2.set_ylabel("Profit vs competitive (k€ per run, 3 firms)")
+    a2.grid(axis="x", visible=False)
+    a2.set_title("Who earns", loc="left", fontsize=8.5, color=INK)
+    fig.text(0.07, 1.10, "With reasoning on, desks manipulate prices for their own firm", fontsize=10, fontweight="bold", color=INK)
+    fig.text(0.07, 1.00, "Six DeepSeek-V4-Flash desks, three equal firms, public board only, collusion never mentioned; 5 runs each\n"
+             "(dots), bar = mean. Self-dealing period = the firm's trading desk worsens the imbalance and its bid is ≥ 30% beyond cost.",
+             fontsize=7.5, color=INK2, linespacing=1.35)
+    _save(fig, out, "fig6_core")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="results/figures")
@@ -226,6 +290,7 @@ def main() -> int:
     fig3_pressure(out)
     fig4_chilling(out)
     fig5_gate(out)
+    fig6_core(out)
     return 0
 
 
