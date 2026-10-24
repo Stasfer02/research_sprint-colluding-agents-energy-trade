@@ -11,6 +11,7 @@ base:
   agents: {mode: llm, integrated: false, objective: shared}
   channel: {channel: public}
   regulator: {enforcement: stated}
-  llm: {model: deepseek/deepseek-v4-flash, temperature: 1.0, openrouter_reasoning: "high", max_tokens: 16000, timeout_s: 300}
+  # max_retries 5 -> 12 after seeds 0, 2, 4 died on provider rate limits (24 Oct); retries do not change the design
+  llm: {model: deepseek/deepseek-v4-flash, temperature: 1.0, openrouter_reasoning: "high", max_tokens: 16000, timeout_s: 300, max_retries: 12}
 cells:
   - id: baseline
