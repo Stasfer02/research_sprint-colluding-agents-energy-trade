@@ -2,8 +2,8 @@
 
     python scripts/export_results.py runs/exp1_detection results/exp1_detection [--no-raw]
 
-Per run it keeps config.json, provenance.json, summary.json, messages.jsonl, regulator.jsonl and judge
-files as is, and gzips periods.jsonl and agent_io.jsonl (full prompts + raw model outputs; LLM sampling
+Per run it keeps config.json, provenance.json, summary.json, messages.jsonl, regulator.jsonl, judge
+files and reasoning codes (scripts/code_reasoning.py) as is, and gzips periods.jsonl and agent_io.jsonl (full prompts + raw model outputs; LLM sampling
 is not seeded, so these are the only way to reproduce an LLM analysis exactly). `--no-raw` keeps only the
 aggregate _summary/ and _eval/ folders (enough for deterministic scripted grids).
 """
@@ -17,7 +17,7 @@ import sys
 from pathlib import Path
 
 PLAIN = ("config.json", "provenance.json", "summary.json", "messages.jsonl", "regulator.jsonl", "judge.json",
-         "judge_windows.jsonl", "judge_windows_private.jsonl", "incomplete.json")
+         "judge_windows.jsonl", "judge_windows_private.jsonl", "incomplete.json", "reasoning_codes.jsonl")
 GZIP = ("periods.jsonl", "agent_io.jsonl")
 
 
@@ -29,7 +29,7 @@ def main() -> int:
     args = ap.parse_args()
     src, dst = Path(args.runs_root), Path(args.results_dir)
     dst.mkdir(parents=True, exist_ok=True)
-    for agg in ("_summary", "_eval"):
+    for agg in ("_summary", "_eval", "_coding"):
         if (src / agg).is_dir():
             shutil.copytree(src / agg, dst / agg, dirs_exist_ok=True)
     n = 0

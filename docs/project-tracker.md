@@ -202,6 +202,8 @@ Many energy companies hold two roles at once. As a Balance Responsible Party (BR
 | 24 Oct (build) | New pressure level `intra_explicit` (management instructs both desks to self-deal), outside the cumulative cross-firm ladder | Positive control for EXP6, the analogue of EXP2's `explicit` |
 | 24 Oct (build) | Grid YAMLs accept `include:` (merged under `base`) | One source for the v2 market (`configs/market_v2.yaml`) across configs |
 | 24 Oct (design) | EXP6 makes B and C a scripted fringe (cost bids, no deviation) | Isolates coordination inside Firm A and halves cost. Caveat: A can recognise its own bids in the merit order |
+| 24 Oct (Stan) | EXP9 = EXP8 + the existing REMIT compliance text (option A), no enforcement; reasoning traces of EXP8 and EXP9 coded blind by Haiku | Tests whether stated rules stop the self-dealing seen in EXP8, and whether agents still think about it |
+| 24 Oct (build) | Trace coder reads ~8k-character chunks with a quote per code (instead of whole traces); "rule awareness" narrowed to legal/regulatory constraints; E12c gets a behavioural check. Done before any EXP9 trace was coded; EXP8 recoded | Whole-trace coding missed brief passages in 17–49k-character traces (4 of 155 keyword hits coded). Coding cost ~$1.20 per experiment instead of ~$0.50 |
 
 ## 7. Findings
 
@@ -286,6 +288,7 @@ Many energy companies hold two roles at once. As a Balance Responsible Party (BR
 - **23 Oct 20:50** — Tracker created (claude.ai Project): pitch, environment design, hypotheses H1–H6, detection plan, decisions, open questions, weekend plan.
 - **23 Oct 21:50** — Moved into the repo. New repo instead of fork; parameters and incentive check added (Findings); compliance-text decision; model choice; shared-vs-separate objective promoted in open questions; plan aligned with spec build order.
 - **23 Oct 22:56** — Overnight build (Claude Code): spec §10 steps 1–6 + 8 implemented; gates 1–2 pass; smoke findings and detector-eval pipeline results added; 8 build decisions logged; LLM stages blocked on the API key's workspace ID (§0 Morning handoff).
+- **24 Oct** — EXP9 (stated rules) pre-registered (E12a–f) and launched; trace coder (`scripts/code_reasoning.py`) built, revised to chunked coding, EXP8 recoded.
 - **24 Oct ~14:30** — Intra-firm redesign. Market v2 built (blocks, dominant Firm A, internal desk chat, `self_deal` label, `intra_explicit` pressure, `include:` in grids). v2 gate passes 16/16. v1 verified byte-identical (775 runs) and tagged `market-v1`. EXP6 designed (draft E9a–e), not run. Spec §13 added.
 - **24 Oct** — OpenRouter support (pinned providers, seeds, per-firm models); report figures 1–5; EXP4 withdrawn; EXP5 (DeepSeek gate) pre-registered and run: DeepSeek colludes.
 - **23 Oct 23:56** — EXP1–EXP3 pre-registered (E2–E6), run (40 runs, $3.85), analysed (`scripts/analyze_experiments.py`) and exported to `results/`; handoff rewritten.
