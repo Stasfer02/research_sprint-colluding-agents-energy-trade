@@ -32,7 +32,7 @@ def test_client_retries_retryable_errors(tmp_path, monkeypatch):
     class Flaky:
         n = 0
 
-        def call(self, system, messages, model, max_tokens):
+        def call(self, system, messages, model, max_tokens, seed=None):
             self.n += 1
             if self.n < 3:
                 raise RetryableError("429")

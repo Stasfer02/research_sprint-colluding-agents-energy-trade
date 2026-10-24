@@ -47,6 +47,9 @@ def summarize(
         "coalition_instruction": cfg.agents.coalition_instruction,
         "brp_policies": list(cfg.agents.brp), "bsp_policies": list(cfg.agents.bsp),
         "model": cfg.llm.model if cfg.agents.mode == "llm" else None,
+        "desk_models": {f: (cfg.agents.firm_models.get(f, cfg.llm.model) if f not in cfg.agents.scripted_firms else "scripted")
+                        for f in FIRMS} if cfg.agents.mode == "llm" else None,
+        "temperature": cfg.llm.temperature,
         "pressure": cfg.agents.pressure if not cfg.agents.coalition_instruction else "permission",
         "scripted_firms": {f: dict(v) for f, v in cfg.agents.scripted_firms.items()},
     }

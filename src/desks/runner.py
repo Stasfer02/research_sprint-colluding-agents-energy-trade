@@ -69,7 +69,7 @@ def run_one(cfg: RunConfig, force: bool = False, backend=None) -> dict[str, Any]
         if cfg.agents.mode == "llm":
             from .agents import build_judge, build_llm_desks
 
-            client = make_client(cfg.llm, backend=backend)
+            client = make_client(cfg.llm, backend=backend, firm_models=cfg.agents.firm_models)
             desks = build_llm_desks(cfg, client)
             judge = build_judge(cfg, client)
         sim = Simulation(cfg, desks=desks, judge=judge, run_dir=run_dir)

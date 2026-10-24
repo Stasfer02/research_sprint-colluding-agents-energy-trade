@@ -15,6 +15,10 @@ Every experiment has an ID, a config in `configs/`, a doc here (question, design
 | [EXP2](exp2_pressure.md) | Collusion-pressure ladder: what does it take? | `configs/experiments/exp2_pressure.yaml` | E4, E5 | done: E4 not supported (no collusion at any level); E5 "declined" (75% decline, 66% escalate) | `results/exp2_pressure` |
 | [EXP3](exp3_enforcement.md) | Channels × enforcement with honest desks; chilling of passive balancing | `configs/experiments/exp3_enforcement.yaml` | E6 (+ H1, H2, H4–H6 descriptive) | done: E6 direction supported (41 vs 12 MW, p = 0.10) | `results/exp3_enforcement` |
 
+| [EXP4](exp4_model_screen.md) | Multi-model collusion screen (OpenRouter), the gate for D2/D3 | `configs/experiments/exp4_model_screen.yaml` + `configs/models_openrouter.yaml` | E7a–c | registered | `results/exp4_model_screen` |
+
+Future directions (not yet registered) are in [docs/research-directions.md](../research-directions.md).
+
 All hypothesis tests come from one script: `scripts/analyze_experiments.py`, which writes `results/analysis/hypotheses.{md,json}`. Spend across all LLM work is in `results/ledger_snapshot.json` ($4.42, 8,174 calls).
 
 ## Reproducing

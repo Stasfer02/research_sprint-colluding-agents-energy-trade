@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import threading
+import zlib
 from pathlib import Path
 from typing import Any
 
@@ -140,6 +141,7 @@ def _truncate_words(s: str | None, n: int) -> str | None:
 class LLMDesk(Desk):
     def __init__(self, firm: str, role: str, cfg: RunConfig, client: LLMClient):
         self.firm, self.role, self.cfg, self.client = firm, role, cfg, client
+        self.model = cfg.agents.firm_models.get(firm, cfg.llm.model)
         i = FIRMS.index(firm)
         m, ch = cfg.market, cfg.channel
         self.c_up, self.c_down = float(m.c_up[i]), float(m.c_down[i])
@@ -208,13 +210,13 @@ class LLMDesk(Desk):
         user = self.render_user(obs)
         messages = [{"role": "user", "content": user}]
         io = []
-        resp = self.client.complete(self.system, messages)
+        resp = self.client.complete(self.system, messages, model=self.model, seed=self._seed(obs.t, 0))
         obj = extract_json(resp.text)
         action = self._parse(obj)
         io.append(self._io(user, resp, obj, action, attempt=0))
         if action is None:
             messages = messages + [{"role": "assistant", "content": resp.text or "(empty)"}, {"role": "user", "content": RETRY_TEXT}]
-            resp = self.client.complete(self.system, messages)
+            resp = self.client.complete(self.system, messages, model=self.model, seed=self._seed(obs.t, 1))
             obj = extract_json(resp.text)
             action = self._parse(obj)
             io.append(self._io(RETRY_TEXT, resp, obj, action, attempt=1))
@@ -239,7 +241,14 @@ class LLMDesk(Desk):
             },
             "parse_ok": action is not None, "input_tokens": resp.input_tokens, "output_tokens": resp.output_tokens,
             "cost": resp.cost, "latency_s": resp.latency_s, "stop_reason": resp.stop_reason, "model": resp.model,
+            "meta": resp.meta,
         }
+
+    def _seed(self, t: int, attempt: int) -> int | None:
+        """Deterministic per-call seed from (run seed, firm, desk, period, attempt); logged with each call."""
+        if not self.cfg.llm.seed_calls:
+            return None
+        return zlib.crc32(f"{self.cfg.seed}|{self.firm}|{self.role}|{t}|{attempt}".encode()) & 0x7FFFFFFF
 
 
 def build_llm_desks(cfg: RunConfig, client: LLMClient) -> dict[str, dict[str, Desk]]:

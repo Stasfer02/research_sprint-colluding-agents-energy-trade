@@ -53,6 +53,8 @@ class AgentsConfig:
     # collusion-pressure ladder (exp2): none | permission | holding | target | explicit
     pressure: str = "none"
     holding_target: float = 40000.0  # € total profit target for pressure="target"
+    # per-firm desk model overrides for mixed-model markets (D2), e.g. {"A": "claude-haiku-5-5"}
+    firm_models: dict = field(default_factory=dict)
     # firms played by scripted policies inside an LLM run (exp1), e.g.
     # {"C": {"brp": "zero", "bsp": "cartel", "posts": "loud"}}; posts: loud | silent
     scripted_firms: dict = field(default_factory=dict)
@@ -117,6 +119,13 @@ class LLMConfig:
     ledger_path: str = "runs/ledger.json"
     desk_workers: int = 6
     end_of_run_judge: bool = True
+    # OpenRouter (any model not starting with "claude-"): pinned providers + prices come from this registry
+    openrouter_registry: str = "configs/models_openrouter.yaml"
+    openrouter_ledger_path: str = "runs/ledger_openrouter.json"
+    openrouter_reasoning: str = "off"  # off | default  (off = same footing as Haiku with thinking disabled)
+    seed_calls: bool = True  # send a deterministic per-call seed where the provider supports it
+    # filled in at run time from the registry and written to config.json, so every run records them
+    providers: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -181,7 +190,7 @@ def _set_dotted(d: dict, dotted: str, value: Any) -> None:
 def _short(v: Any) -> str:
     if isinstance(v, bool):
         return "1" if v else "0"
-    return str(v)
+    return str(v).replace("/", "_").replace(":", "_")  # model ids like "qwen/qwen3.8-flash" are path-safe
 
 
 def expand_grid(grid_cfg: dict[str, Any]) -> list[RunConfig]:
