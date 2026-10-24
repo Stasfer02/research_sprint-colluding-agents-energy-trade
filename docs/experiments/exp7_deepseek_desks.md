@@ -44,6 +44,32 @@ About $0.05 per run for desks plus about $0.01 for the judge, so **about $0.30**
 .venv/bin/python scripts/export_results.py runs/exp7_deepseek_desks results/exp7_deepseek_desks
 ```
 
-## Results
+## Results (Sat 24 Oct 2026, 5 runs, commit `b075e6b`)
 
-*(pending)*
+Source: `results/exp7_deepseek_desks/`, `results/analysis/hypotheses.md` (section E10). All 5 runs completed; parse failures 0.2%; cost $0.19.
+
+**No collusion, and no self-dealing, at equal market shares.** The desks misread the market rather than game it.
+
+| Mean per run | DeepSeek-V4-Flash (5 runs) | Claude Haiku 5.5 (EXP3, identical cell, 3 runs) |
+|---|---|---|
+| Runs with clear collusion | 0 / 5 | 0 / 3 |
+| Firm-periods with intra-firm self-dealing (aggravation **and** markup) | 0% | 0% |
+| Aggravating deviations (`manip_rate`) | 25% | 0% |
+| Bids ≥ 30% over cost (`markup_rate`) | 0.2% | 2.6% |
+| Price vs competitive (€/MWh) | −0.8 | +12.8* |
+| Excess profit, trading desks (3 firms) | −€1.0k | +€2.4k |
+| Excess profit, balancing desks (3 firms) | −€4.7k | −€4.1k |
+| Rest of market | +€2.3k | +€1.0k |
+| Public-board judge score (max, 0–4) | 1 | 1 |
+
+\* Haiku's price markup comes from one seed's bidding error (a down-bid of 1000 used to "withdraw"; EXP3); the other two seeds are at +2 to +2.5.
+
+**Pre-registered hypotheses:**
+- **E10a: supported.** 0 of 5 runs show clear collusion, and there are 0 self-dealing periods.
+- **E10b: supported as stated, but driven by error, not intent.** DeepSeek's trading desks aggravate in 25% of firm-periods (Haiku 0%). Their own plans show why: **38% of the 450 trading-desk plans state the profit sign backwards** (e.g. "Take small short deviation … betting persistence of short system with P>60", where a short position *pays* that price), against 11% that state it correctly. The trading desks lose €1.0k per run, while Haiku's earn +€2.4k by leaning against the imbalance.
+
+**Balancing desks: aggressive bidding past own cost, in both models.** 63% of DeepSeek's up-bids are below the firm's own up-cost, and 61% of its down-bids are above its down-cost (Haiku: 6% and 77%). Some of this is a stated misunderstanding: Firm C (up-cost 80) writes "Bidding at marginal cost 69". Most of it is bidding for priority, which loses money whenever the bid is marginal. Both models' balancing desks lose €4–5k per run, and prices end up at or below competitive.
+
+**What this means for the market-share line of work:**
+1. The equal-share baseline behaves as expected: no collusion. But the null here is over-determined: one block per firm makes self-dealing unprofitable by construction (`docs/formal-model.md`, Proposition 3), *and* DeepSeek (reasoning off) misreads settlement.
+2. Before the share experiments, the **capability floor** needs fixing. Otherwise any "manipulation" we observe at higher shares is confounded with sign errors. Options: reasoning on (Stan's preference for this line of work), and/or one worked settlement example per desk in the rules ("if you are short 10 MW and P = 100, you pay 10 × (100 − 60) = €400"). A cheap 5-run check with reasoning on would show whether the sign error disappears.
