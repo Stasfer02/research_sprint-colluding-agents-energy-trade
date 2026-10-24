@@ -1,0 +1,15 @@
+# EXP7 — Baseline: six DeepSeek-V4-Flash desks, equal market shares (docs/experiments/exp7_deepseek_desks.md)
+# Market v1 (three firms, one 40 MW block each = 1/3 of balancing capacity), one BRP + one BSP agent per firm,
+# shared firm objective, public board only (no private or internal channel), no enforcement and no compliance
+# text, no coalition text (collusion is never mentioned). Reasoning off, temperature 1.0, as in EXP5.
+# Haiku comparison: EXP3 cell main__channel-public__enforcement-none (identical setup, seeds 0-2).
+name: exp7_deepseek_desks
+out_dir: runs/exp7_deepseek_desks
+seeds: [0, 1, 2, 3, 4]
+base:
+  agents: {mode: llm, integrated: false, objective: shared}
+  channel: {channel: public}
+  regulator: {enforcement: none}
+  llm: {model: deepseek/deepseek-v4-flash, temperature: 1.0, openrouter_reasoning: "off"}
+cells:
+  - id: baseline
