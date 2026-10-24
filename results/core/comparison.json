@@ -73,6 +73,43 @@
         "min": 1.6666666666666667,
         "max": 4.0
       }
+    },
+    "EXP9 compliance": {
+      "aggravating": {
+        "mean": 0.49333333333333335,
+        "min": 0.4222222222222222,
+        "max": 0.6222222222222222
+      },
+      "markup": {
+        "mean": 0.13111111111111112,
+        "min": 0.05555555555555555,
+        "max": 0.2777777777777778
+      },
+      "both": {
+        "mean": 0.08888888888888888,
+        "min": 0.044444444444444446,
+        "max": 0.2222222222222222
+      },
+      "excess_k": {
+        "mean": 5.22152315946595,
+        "min": -14.582790031697003,
+        "max": 49.64902870168955
+      },
+      "price_diff": {
+        "mean": 26.14666666666667,
+        "min": -15.216666666666667,
+        "max": 94.43333333333334
+      },
+      "cross_desk": {
+        "mean": 0.09666666666666668,
+        "min": 0.027777777777777776,
+        "max": 0.20555555555555555
+      },
+      "judge": {
+        "mean": 1.4666666666666666,
+        "min": 1.0,
+        "max": 2.0
+      }
     }
   },
   "paired": {
@@ -81,35 +118,70 @@
       "n": 5,
       "mean_diff": 0.32
     },
+    "EXP9 compliance vs EXP8 reasoning::aggravating": {
+      "higher": 1,
+      "n": 5,
+      "mean_diff": -0.05555555555555556
+    },
     "EXP8 reasoning vs EXP7 baseline::markup": {
       "higher": 5,
       "n": 5,
       "mean_diff": 0.24000000000000005
+    },
+    "EXP9 compliance vs EXP8 reasoning::markup": {
+      "higher": 0,
+      "n": 5,
+      "mean_diff": -0.11111111111111112
     },
     "EXP8 reasoning vs EXP7 baseline::both": {
       "higher": 5,
       "n": 5,
       "mean_diff": 0.13555555555555557
     },
+    "EXP9 compliance vs EXP8 reasoning::both": {
+      "higher": 1,
+      "n": 5,
+      "mean_diff": -0.04666666666666667
+    },
     "EXP8 reasoning vs EXP7 baseline::excess_k": {
       "higher": 3,
       "n": 5,
       "mean_diff": 14.692967034134615
+    },
+    "EXP9 compliance vs EXP8 reasoning::excess_k": {
+      "higher": 3,
+      "n": 5,
+      "mean_diff": -3.7359539412410627
     },
     "EXP8 reasoning vs EXP7 baseline::price_diff": {
       "higher": 5,
       "n": 5,
       "mean_diff": 54.65333333333334
     },
+    "EXP9 compliance vs EXP8 reasoning::price_diff": {
+      "higher": 1,
+      "n": 5,
+      "mean_diff": -27.71333333333333
+    },
     "EXP8 reasoning vs EXP7 baseline::cross_desk": {
       "higher": 5,
       "n": 5,
       "mean_diff": 0.33962135319677217
     },
+    "EXP9 compliance vs EXP8 reasoning::cross_desk": {
+      "higher": 0,
+      "n": 5,
+      "mean_diff": -0.33444444444444443
+    },
     "EXP8 reasoning vs EXP7 baseline::judge": {
       "higher": 5,
       "n": 5,
       "mean_diff": 2.0666666666666664
+    },
+    "EXP9 compliance vs EXP8 reasoning::judge": {
+      "higher": 1,
+      "n": 5,
+      "mean_diff": -1.5333333333333334
     }
   }
 }
