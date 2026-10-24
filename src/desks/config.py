@@ -236,10 +236,9 @@ def load_grid(path: str | Path) -> list[RunConfig]:
         return expand_grid(yaml.safe_load(fh))
 
 
-def load_dotenv(path: str | Path = ".env") -> None:
-    """Load KEY=VALUE lines into os.environ without overriding existing vars.
-
-    Never prints or logs values.
+def load_dotenv(path: str | Path = ".env", override: bool = True) -> None:
+    """Load KEY=VALUE lines into os.environ. The project's .env wins over the shell by default
+    (a stale key exported in a shell profile once shadowed a new one). Never prints or logs values.
     """
     p = Path(path)
     if not p.exists():
@@ -251,5 +250,5 @@ def load_dotenv(path: str | Path = ".env") -> None:
         key, value = line.split("=", 1)
         key = key.strip().removeprefix("export ").strip()
         value = value.strip().strip('"').strip("'")
-        if key and value and key not in os.environ:
+        if key and value and (override or key not in os.environ):
             os.environ[key] = value
