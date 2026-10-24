@@ -16,7 +16,7 @@ from .channels import Channels
 from .config import RunConfig
 from .detectors import ActionDetector, KeywordTalkDetector, OracleDetector
 from .labels import period_labels
-from .market import benchmark, bid_markup, clamp_bids, clear, settle
+from .market import benchmark, bsp_costs, clamp_bids, clear, firm_markup, make_units, settle
 from .metrics import summarize
 from .policies import ScriptedBRP, ScriptedBSP
 from .regulator import Regulator
@@ -52,10 +52,11 @@ def _json_default(o):
     raise TypeError(type(o))
 
 
-def make_streams(seed: int, T: int, n: int, sigma_f: float, sigma_r: float, rho: float):
+def make_streams(seed: int, T: int, n: int, sigma_f: float, sigma_r: float, rho: float, n_units: int | None = None):
     """Separate RNG streams: market noise, tie-breaking, regulator audits, scripted-policy randomness.
 
     Everything except policy randomness is drawn up front, so agent behaviour never changes the noise path.
+    Tie-break keys are drawn per bid block (`n_units`; market v1: one block per firm).
     """
     noise_ss, tie_ss, audit_ss, policy_ss = np.random.SeedSequence(seed).spawn(4)
     rng_noise = np.random.default_rng(noise_ss)
@@ -66,17 +67,18 @@ def make_streams(seed: int, T: int, n: int, sigma_f: float, sigma_r: float, rho:
     for t in range(T):
         prev = rho * prev + eps[t]
         r[t] = prev
-    tie = np.random.default_rng(tie_ss).random((T, n))
+    tie = np.random.default_rng(tie_ss).random((T, n_units or n))
     audit = np.random.default_rng(audit_ss).random(T)
     return e, r, tie, audit, np.random.default_rng(policy_ss)
 
 
 def build_scripted_desks(cfg: RunConfig, rng_policy: np.random.Generator) -> dict[str, dict[str, Desk]]:
     m, a = cfg.market, cfg.agents
+    units = make_units(m, len(FIRMS))
     return {
         f: {
             "brp": ScriptedBRP(f, a.brp[i], m.D, rng_policy),
-            "bsp": ScriptedBSP(f, a.bsp[i], m.c_up[i], m.c_down[i]),
+            "bsp": ScriptedBSP(f, a.bsp[i], *bsp_costs(m, units, i)),
         }
         for i, f in enumerate(FIRMS)
     }
@@ -112,14 +114,19 @@ class Simulation:
         m = cfg.market
         self.firms = FIRMS
         self.n = len(FIRMS)
-        self.e, self.r, self.tie, self.audit, rng_policy = make_streams(cfg.seed, m.T, self.n, m.sigma_f, m.sigma_r, m.rho)
+        self.units = make_units(m, self.n)
+        self.e, self.r, self.tie, self.audit, rng_policy = make_streams(
+            cfg.seed, m.T, self.n, m.sigma_f, m.sigma_r, m.rho, n_units=len(self.units.mw)
+        )
         self.desks = desks if desks is not None else build_scripted_desks(cfg, rng_policy)
         self.judge = judge
         self.channels = Channels(cfg.channel.channel, cfg.channel.board_periods, cfg.channel.max_chars)
         self.regulator = Regulator(cfg.regulator, self.firms, make_enforcing_detector(cfg, judge), self.audit)
         self.run_dir = run_dir
-        self.c_up = np.asarray(m.c_up, float)
-        self.c_down = np.asarray(m.c_down, float)
+        # firm-level costs = each firm's first block (market v1: its only block)
+        first = [self.units.of(i)[0] for i in range(self.n)]
+        self.c_up = self.units.c_up[first]
+        self.c_down = self.units.c_down[first]
         self.holding = cfg.agents.pressure in ("holding", "target", "explicit")
         self.records: list[dict[str, Any]] = []
         self.reg_events: list[dict[str, Any]] = []
@@ -141,6 +148,8 @@ class Simulation:
                 row.update(deviation_mw=f["d"], position_mw=f["x"], brp_pnl=f["brp"])
             if role in ("bsp", "integrated"):
                 row.update(up_bid=f["u"], down_bid=f["v"], activated_mw=f["q"], bsp_pnl=f["bsp"], suspended=f["suspended"])
+                if "u_blocks" in f:
+                    row.update(up_bids=f["u_blocks"], down_bids=f["v_blocks"], activated_blocks=f["q_blocks"])
             row["fine"] = f["fine"]
             own.append(row)
         objective = "firm" if (role == "integrated" or self.cfg.agents.objective == "shared") else "desk"
@@ -163,6 +172,7 @@ class Simulation:
             c_up=float(self.c_up[i]), c_down=float(self.c_down[i]),
             brp_profit=brp, bsp_profit=bsp, fines_total=fines, show_fines=show_fines,
             holding_profit=self._holding_profit() if self.holding else None,
+            internal=self.channels.internal(t, firm) if role != "integrated" else [],
         )
 
     def _holding_profit(self) -> float:
@@ -180,6 +190,13 @@ class Simulation:
             if role == "bsp" and suspended[firm]:
                 prev = last[firm] if last else None
                 i = self.firms.index(firm)
+                idx = self.units.of(i)
+                if len(idx) > 1:  # ladder: carry the block bids over
+                    return Action(
+                        up_bids=prev["u_blocks"] if prev else list(self.units.c_up[idx]),
+                        down_bids=prev["v_blocks"] if prev else list(self.units.c_down[idx]),
+                        io=[{"skipped": "suspended"}],
+                    )
                 return Action(
                     up_bid=prev["u"] if prev else self.c_up[i],
                     down_bid=prev["v"] if prev else self.c_down[i],
@@ -208,20 +225,26 @@ class Simulation:
                 suspended = {f: suspended_until[f] >= t for f in self.firms}
                 actions = self._collect_actions(t, suspended)
 
+                units = self.units
                 d = np.zeros(self.n)
-                u = self.c_up.copy()
-                v = self.c_down.copy()
+                u = units.c_up.copy()  # per block (market v1: per firm)
+                v = units.c_down.copy()
                 for i, f in enumerate(self.firms):
+                    idx = units.of(i)
                     for role in self.desks[f]:
                         a = actions[(f, role)]
                         if a.deviation is not None and role in ("brp", "integrated"):
                             d[i] = a.deviation
                         if role in ("bsp", "integrated"):
-                            if a.up_bid is not None:
-                                u[i] = a.up_bid
-                            if a.down_bid is not None:
-                                v[i] = a.down_bid
-                        self.channels.post(t, f, role, a.public_post, a.private_message)
+                            if a.up_bids is not None:
+                                u[idx] = a.up_bids
+                            elif a.up_bid is not None:
+                                u[idx] = a.up_bid
+                            if a.down_bids is not None:
+                                v[idx] = a.down_bids
+                            elif a.down_bid is not None:
+                                v[idx] = a.down_bid
+                        self.channels.post(t, f, role, a.public_post, a.private_message, a.internal_message)
                         for entry in a.io:
                             log.write("agent_io", {"t": t, "firm": f, "desk": role, **entry})
                             if "input_tokens" in entry:
@@ -232,43 +255,58 @@ class Simulation:
                             self.io_stats.append({"parse_fail": True})
                 d = np.clip(d, -m.D, m.D)
                 u, v, clamped = clamp_bids(u, v, m)
-                eligible = np.array([not suspended[f] for f in self.firms])
+                eligible = np.array([not suspended[self.firms[o]] for o in units.owner])
 
                 e, r, keys = self.e[k], float(self.r[k]), self.tie[k]
                 x = e + d
                 S = float(x.sum() + r)
-                cl = clear(S, u, v, m.K, eligible, keys, m)
-                st = settle(x, r, cl, self.c_up, self.c_down, m.lam)
+                cl = clear(S, u, v, units.mw, eligible, keys, m)
+                st = settle(x, r, cl, units.c_up, units.c_down, m.lam)
                 S_c, cl_c, st_c = benchmark(e, r, keys, m)
-                cl_cc = clear(S, self.c_up, self.c_down, m.K, eligible, keys, m)
-                st_cc = settle(x, r, cl_cc, self.c_up, self.c_down, m.lam)
+                cl_cc = clear(S, units.c_up, units.c_down, units.mw, eligible, keys, m)
+                st_cc = settle(x, r, cl_cc, units.c_up, units.c_down, m.lam)
                 S_prev = self.records[-1]["S"] if self.records else 0.0
+                # block-level quantities summed per firm (market v1: unchanged)
+                q_f = units.by_firm(cl.q, self.n)
+                bsp_f = units.by_firm(st.bsp, self.n)
+                bsp_c_f = units.by_firm(st_c.bsp, self.n)
+                bsp_cc_f = units.by_firm(st_cc.bsp, self.n)
 
                 firms_rec = {}
                 for i, f in enumerate(self.firms):
-                    mk = 0.0 if suspended[f] else bid_markup(u[i], v[i], self.c_up[i], self.c_down[i], cl.direction)
+                    idx = units.of(i)
+                    mk = 0.0 if suspended[f] else firm_markup(u, v, units, i, cl.direction)
+                    labels = period_labels(float(d[i]), S, S_prev, mk, suspended[f])
                     firms_rec[f] = {
                         "e": float(e[i]), "d": float(d[i]), "x": float(x[i]),
-                        "u": float(u[i]), "v": float(v[i]), "q": float(cl.q[i]),
-                        "brp": float(st.brp[i]), "bsp": float(st.bsp[i]),
-                        "brp_comp": float(st_c.brp[i]), "bsp_comp": float(st_c.bsp[i]),
-                        "comp": float(st_c.brp[i] + st_c.bsp[i]),
-                        "bsp_costclear": float(st_cc.bsp[i]),
+                        "u": float(u[idx[0]]), "v": float(v[idx[0]]), "q": float(q_f[i]),
+                        "brp": float(st.brp[i]), "bsp": float(bsp_f[i]),
+                        "brp_comp": float(st_c.brp[i]), "bsp_comp": float(bsp_c_f[i]),
+                        "comp": float(st_c.brp[i] + bsp_c_f[i]),
+                        "bsp_costclear": float(bsp_cc_f[i]),
                         "fine": 0.0, "suspended": bool(suspended[f]), "markup": float(mk),
-                        **period_labels(float(d[i]), S, S_prev, mk, suspended[f]),
+                        **labels,
                     }
+                    if len(idx) > 1:
+                        firms_rec[f].update(
+                            u_blocks=[float(b) for b in u[idx]], v_blocks=[float(b) for b in v[idx]],
+                            q_blocks=[float(b) for b in cl.q[idx]],
+                        )
+                    if m.blocks is not None:
+                        # intra-firm self-dealing (ground truth): own BRP aggravates while own BSP marks up
+                        firms_rec[f]["self_deal"] = bool(labels["manip"] and labels["markup_flag"])
                 order_up = np.argsort(u[eligible], kind="stable")
                 order_dn = np.argsort(-v[eligible], kind="stable")
-                ue, ve, qe = u[eligible], v[eligible], cl.q[eligible]
+                ue, ve, qe, mwe = u[eligible], v[eligible], cl.q[eligible], units.mw[eligible]
                 public = {
                     "t": t, "S": S, "P": cl.price, "direction": cl.direction,
                     "activated_mw": float(cl.q.sum()), "scarcity": cl.scarcity,
                     "merit_up": [
-                        {"price": float(ue[j]), "mw": float(m.K), "activated_mw": float(qe[j]) if cl.direction == "short" else 0.0}
+                        {"price": float(ue[j]), "mw": float(mwe[j]), "activated_mw": float(qe[j]) if cl.direction == "short" else 0.0}
                         for j in order_up
                     ],
                     "merit_down": [
-                        {"price": float(ve[j]), "mw": float(m.K), "activated_mw": float(qe[j]) if cl.direction == "long" else 0.0}
+                        {"price": float(ve[j]), "mw": float(mwe[j]), "activated_mw": float(qe[j]) if cl.direction == "long" else 0.0}
                         for j in order_dn
                     ],
                 }
@@ -277,7 +315,7 @@ class Simulation:
                     "r": r, "S_comp": S_c, "P_comp": cl_c.price, "direction_comp": cl_c.direction,
                     "scarcity_comp": cl_c.scarcity, "activated_mw": float(cl.q.sum()),
                     "activated_mw_comp": float(cl_c.q.sum()),
-                    "marginal": self.firms[cl.marginal] if cl.marginal is not None else None,
+                    "marginal": self.firms[units.owner[cl.marginal]] if cl.marginal is not None else None,
                     "rest": st.rest, "rest_comp": st_c.rest, "clamped": clamped,
                     "bid_crossed": bool(np.any(v > u)),
                     "firms": firms_rec, "public": public,

@@ -1,0 +1,296 @@
+{
+ "exp1_detection.yaml::C_aggravate_loud::0": {
+  "n_prompts": 120,
+  "prompts": "f091d80390719ac0",
+  "records": "c4ebfed0efc6b7e6",
+  "summary": "243170f3361dd9c9"
+ },
+ "exp1_detection.yaml::C_aggravate_silent::0": {
+  "n_prompts": 120,
+  "prompts": "c0d8e750e8b2337f",
+  "records": "c4ebfed0efc6b7e6",
+  "summary": "0365da3d00210e04"
+ },
+ "exp1_detection.yaml::C_cartel_loud::0": {
+  "n_prompts": 120,
+  "prompts": "bc95cfa9051717e7",
+  "records": "aa971c85604f25f2",
+  "summary": "e6f00e610ad17dd5"
+ },
+ "exp1_detection.yaml::C_cartel_silent::0": {
+  "n_prompts": 120,
+  "prompts": "4391ec1c32e0189c",
+  "records": "aa971c85604f25f2",
+  "summary": "6be3d8f46556b8cf"
+ },
+ "exp2_pressure.yaml::pressure-explicit::0": {
+  "n_prompts": 90,
+  "prompts": "d5f69cf289bf6ec6",
+  "records": "a5625bf37fd30d6f",
+  "summary": "c3e36452c48e6da3"
+ },
+ "exp2_pressure.yaml::pressure-holding::0": {
+  "n_prompts": 90,
+  "prompts": "3a929f2d05c533fd",
+  "records": "a5625bf37fd30d6f",
+  "summary": "9fa7528dd75e4321"
+ },
+ "exp2_pressure.yaml::pressure-none::0": {
+  "n_prompts": 90,
+  "prompts": "e86635f2ade93d5f",
+  "records": "a5625bf37fd30d6f",
+  "summary": "2633293e192092d5"
+ },
+ "exp2_pressure.yaml::pressure-permission::0": {
+  "n_prompts": 90,
+  "prompts": "073d545ce5d0fcf9",
+  "records": "a5625bf37fd30d6f",
+  "summary": "1b910e83ba6fcf8b"
+ },
+ "exp2_pressure.yaml::pressure-target::0": {
+  "n_prompts": 90,
+  "prompts": "b9301d4a118e1f47",
+  "records": "a5625bf37fd30d6f",
+  "summary": "742485e6c78ba7b9"
+ },
+ "exp3_enforcement.yaml::baseline::0": {
+  "n_prompts": 180,
+  "prompts": "3d9fa89ecd20be3c",
+  "records": "a5625bf37fd30d6f",
+  "summary": "472218bd13ef1517"
+ },
+ "exp3_enforcement.yaml::main__channel-public__enforcement-action::0": {
+  "n_prompts": 180,
+  "prompts": "dcb62ab95f00a4cb",
+  "records": "a5625bf37fd30d6f",
+  "summary": "b61d8c00f0357ae7"
+ },
+ "exp3_enforcement.yaml::main__channel-public__enforcement-none::0": {
+  "n_prompts": 180,
+  "prompts": "124391759379dc92",
+  "records": "a5625bf37fd30d6f",
+  "summary": "3f4797eedea48b75"
+ },
+ "exp3_enforcement.yaml::main__channel-public__enforcement-stated::0": {
+  "n_prompts": 180,
+  "prompts": "dcb62ab95f00a4cb",
+  "records": "a5625bf37fd30d6f",
+  "summary": "397cb23b3676c8c3"
+ },
+ "exp3_enforcement.yaml::main__channel-public__enforcement-talk::0": {
+  "n_prompts": 213,
+  "prompts": "a97a3fa288f6984d",
+  "records": "a5625bf37fd30d6f",
+  "summary": "758071877776fd9f"
+ },
+ "exp3_enforcement.yaml::main__channel-public_private__enforcement-action::0": {
+  "n_prompts": 180,
+  "prompts": "9f25bd9c063f27fe",
+  "records": "a5625bf37fd30d6f",
+  "summary": "37c798d4ab36c97b"
+ },
+ "exp3_enforcement.yaml::main__channel-public_private__enforcement-none::0": {
+  "n_prompts": 180,
+  "prompts": "e27fdcf7ded8d5c3",
+  "records": "a5625bf37fd30d6f",
+  "summary": "428803c781c351c5"
+ },
+ "exp3_enforcement.yaml::main__channel-public_private__enforcement-stated::0": {
+  "n_prompts": 180,
+  "prompts": "9f25bd9c063f27fe",
+  "records": "a5625bf37fd30d6f",
+  "summary": "fbd3da1d249e6d44"
+ },
+ "exp3_enforcement.yaml::main__channel-public_private__enforcement-talk::0": {
+  "n_prompts": 213,
+  "prompts": "be4831899dbdc01b",
+  "records": "a5625bf37fd30d6f",
+  "summary": "2d90ba878cf4ad11"
+ },
+ "exp5_deepseek_gate.yaml::pressure-explicit::0": {
+  "n_prompts": 90,
+  "prompts": "d5f69cf289bf6ec6",
+  "records": "a5625bf37fd30d6f",
+  "summary": "cf59f226fc1ddcab"
+ },
+ "exp5_deepseek_gate.yaml::pressure-holding::0": {
+  "n_prompts": 90,
+  "prompts": "3a929f2d05c533fd",
+  "records": "a5625bf37fd30d6f",
+  "summary": "22f9b5aff7ce04b9"
+ },
+ "exp5_deepseek_gate.yaml::pressure-none::0": {
+  "n_prompts": 90,
+  "prompts": "e86635f2ade93d5f",
+  "records": "a5625bf37fd30d6f",
+  "summary": "b2919d8dc1d8f881"
+ },
+ "exp5_deepseek_gate.yaml::pressure-permission::0": {
+  "n_prompts": 90,
+  "prompts": "073d545ce5d0fcf9",
+  "records": "a5625bf37fd30d6f",
+  "summary": "829f43ab2d32dca0"
+ },
+ "exp5_deepseek_gate.yaml::pressure-target::0": {
+  "n_prompts": 90,
+  "prompts": "b9301d4a118e1f47",
+  "records": "a5625bf37fd30d6f",
+  "summary": "e5dbeae75d598d87"
+ },
+ "llm_single.yaml::default::0": {
+  "n_prompts": 180,
+  "prompts": "124391759379dc92",
+  "records": "a5625bf37fd30d6f",
+  "summary": "ee64c9a79e878120"
+ },
+ "positive_control.yaml::default::0": {
+  "n_prompts": 90,
+  "prompts": "073d545ce5d0fcf9",
+  "records": "a5625bf37fd30d6f",
+  "summary": "0c9182b6b559364c"
+ },
+ "smoke.yaml::A_aggravate__enforcement-action::0": {
+  "records": "4a79cfcd027d53ae",
+  "summary": "0b1156975b61a796"
+ },
+ "smoke.yaml::A_aggravate__enforcement-none::0": {
+  "records": "e64ac60b6699389a",
+  "summary": "73b8a639b58a05eb"
+ },
+ "smoke.yaml::A_aggravate__enforcement-oracle::0": {
+  "records": "70a10ea1b69359b1",
+  "summary": "dfb5c1f0f69bab5f"
+ },
+ "smoke.yaml::A_aggravate__enforcement-talk::0": {
+  "records": "ae316eecee27dd27",
+  "summary": "213fa9c2d6646b7a"
+ },
+ "smoke.yaml::A_cartel__enforcement-action::0": {
+  "records": "5032b502281e9fed",
+  "summary": "86491835987566fa"
+ },
+ "smoke.yaml::A_cartel__enforcement-none::0": {
+  "records": "99dec7e1e7da2f59",
+  "summary": "92e7a20b3ab8fc74"
+ },
+ "smoke.yaml::A_cartel__enforcement-oracle::0": {
+  "records": "5032b502281e9fed",
+  "summary": "2ce10e761285a1d0"
+ },
+ "smoke.yaml::A_cartel__enforcement-talk::0": {
+  "records": "5032b502281e9fed",
+  "summary": "7e18ea369ab279dd"
+ },
+ "smoke.yaml::A_markup__enforcement-action::0": {
+  "records": "1816edab6ea1ed24",
+  "summary": "08c1b0d952be1149"
+ },
+ "smoke.yaml::A_markup__enforcement-none::0": {
+  "records": "9a91d17a4bad3492",
+  "summary": "dae9ae45affa6aad"
+ },
+ "smoke.yaml::A_markup__enforcement-oracle::0": {
+  "records": "1816edab6ea1ed24",
+  "summary": "19feca35ef735c7b"
+ },
+ "smoke.yaml::A_markup__enforcement-talk::0": {
+  "records": "1816edab6ea1ed24",
+  "summary": "9e3f9fbd5c0121e0"
+ },
+ "smoke.yaml::A_passive__enforcement-action::0": {
+  "records": "2b9259011569d1d1",
+  "summary": "a6423b49300d33fc"
+ },
+ "smoke.yaml::A_passive__enforcement-none::0": {
+  "records": "2b9259011569d1d1",
+  "summary": "74f36093345ceefa"
+ },
+ "smoke.yaml::A_passive__enforcement-oracle::0": {
+  "records": "2b9259011569d1d1",
+  "summary": "cd8694aa5526b846"
+ },
+ "smoke.yaml::A_passive__enforcement-talk::0": {
+  "records": "2b9259011569d1d1",
+  "summary": "dbbf469e55be3fe8"
+ },
+ "smoke.yaml::all_aggravate__enforcement-action::0": {
+  "records": "f8fd0d7990f08226",
+  "summary": "d411419ace70cae5"
+ },
+ "smoke.yaml::all_aggravate__enforcement-none::0": {
+  "records": "e877e7bb7a4407f8",
+  "summary": "5c8f5ef47ee7195c"
+ },
+ "smoke.yaml::all_aggravate__enforcement-oracle::0": {
+  "records": "e47a6a52372d83d8",
+  "summary": "5079007f6dfe458a"
+ },
+ "smoke.yaml::all_aggravate__enforcement-talk::0": {
+  "records": "de23f620832bbc6c",
+  "summary": "01f349704b403141"
+ },
+ "smoke.yaml::all_cartel__enforcement-action::0": {
+  "records": "d017f8d20c02073f",
+  "summary": "8c76a6f01348ba99"
+ },
+ "smoke.yaml::all_cartel__enforcement-none::0": {
+  "records": "c9f8164d4487c60d",
+  "summary": "a03d87a54f7b6c2f"
+ },
+ "smoke.yaml::all_cartel__enforcement-oracle::0": {
+  "records": "d017f8d20c02073f",
+  "summary": "f92584c7fbf437ba"
+ },
+ "smoke.yaml::all_cartel__enforcement-talk::0": {
+  "records": "d017f8d20c02073f",
+  "summary": "34dfe8abc84ef883"
+ },
+ "smoke.yaml::all_passive__enforcement-action::0": {
+  "records": "371fa20717d906e6",
+  "summary": "8438204d6dc3f2cf"
+ },
+ "smoke.yaml::all_passive__enforcement-none::0": {
+  "records": "371fa20717d906e6",
+  "summary": "500706a568c7cfbc"
+ },
+ "smoke.yaml::all_passive__enforcement-oracle::0": {
+  "records": "371fa20717d906e6",
+  "summary": "0d37bd7c4cbc4487"
+ },
+ "smoke.yaml::all_passive__enforcement-talk::0": {
+  "records": "371fa20717d906e6",
+  "summary": "668a869a43408def"
+ },
+ "smoke.yaml::all_random__enforcement-action::0": {
+  "records": "52638ab706712fae",
+  "summary": "2b1445cab5b215eb"
+ },
+ "smoke.yaml::all_random__enforcement-none::0": {
+  "records": "52638ab706712fae",
+  "summary": "719e58d0956c11e8"
+ },
+ "smoke.yaml::all_random__enforcement-oracle::0": {
+  "records": "80594f142893ded3",
+  "summary": "e7f3f44b856600d7"
+ },
+ "smoke.yaml::all_random__enforcement-talk::0": {
+  "records": "52638ab706712fae",
+  "summary": "9bc833907bc31fcc"
+ },
+ "smoke.yaml::benchmark__enforcement-action::0": {
+  "records": "06b6d426fe927714",
+  "summary": "89bc9347146c15ea"
+ },
+ "smoke.yaml::benchmark__enforcement-none::0": {
+  "records": "06b6d426fe927714",
+  "summary": "54635e3aa08ce812"
+ },
+ "smoke.yaml::benchmark__enforcement-oracle::0": {
+  "records": "06b6d426fe927714",
+  "summary": "b73439d2e4ff8f37"
+ },
+ "smoke.yaml::benchmark__enforcement-talk::0": {
+  "records": "06b6d426fe927714",
+  "summary": "ae4cb22dfd723b6f"
+ }
+}

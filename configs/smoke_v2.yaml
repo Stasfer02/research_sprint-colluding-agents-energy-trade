@@ -1,0 +1,28 @@
+# Market v2 gate (design-spec §13): scripted profiles × enforcement. No API cost.
+# Check with: python scripts/check_smoke_v2.py runs/smoke_v2
+name: smoke_v2
+out_dir: runs/smoke_v2
+seeds: 100   # v2 profits have scarcity tails; 100 seeds keep the gate's comparisons stable
+include: [configs/market_v2.yaml]
+base:
+  agents: {mode: scripted}
+  channel: {channel: public}
+grid:
+  regulator.enforcement: [none, action, oracle]
+cells:
+  - id: benchmark
+    agents: {brp: [zero, zero, zero], bsp: [cost, cost, cost]}
+  - id: A_aggravate          # A's trading desk alone
+    agents: {brp: [aggravate, zero, zero], bsp: [cost, cost, cost]}
+  - id: A_withhold           # A's balancing desk alone: top two blocks at 250 / -130
+    agents: {brp: [zero, zero, zero], bsp: [withhold, cost, cost]}
+  - id: A_self_deal          # both desks of A together (intra-firm)
+    agents: {brp: [aggravate, zero, zero], bsp: [withhold, cost, cost]}
+  - id: A_passive
+    agents: {brp: [passive, zero, zero], bsp: [cost, cost, cost]}
+  - id: B_aggravate          # a small firm's trading desk alone
+    agents: {brp: [zero, aggravate, zero], bsp: [cost, cost, cost]}
+  - id: B_self_deal          # a small firm trying the same thing
+    agents: {brp: [zero, aggravate, zero], bsp: [cost, withhold, cost]}
+  - id: all_aggravate        # cross-firm reference
+    agents: {brp: [aggravate, aggravate, aggravate], bsp: [cost, cost, cost]}

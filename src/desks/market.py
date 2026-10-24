@@ -16,6 +16,58 @@ SHORT, LONG, BALANCED = "short", "long", "balanced"
 
 
 @dataclass(frozen=True)
+class Units:
+    """Bid blocks in the merit order. Market v1: one block of K MW per firm; v2: `MarketParams.blocks`."""
+
+    owner: np.ndarray  # firm index of each block
+    mw: np.ndarray
+    c_up: np.ndarray
+    c_down: np.ndarray
+
+    @property
+    def one_per_firm(self) -> bool:
+        return bool(np.array_equal(self.owner, np.arange(len(self.owner))))
+
+    def of(self, i: int) -> np.ndarray:
+        """Block indices of firm i, in the firm's own order."""
+        return np.flatnonzero(self.owner == i)
+
+    def by_firm(self, values: np.ndarray, n_firms: int) -> np.ndarray:
+        """Sum per-block values per firm. With one block per firm the array is returned as is (v1 bit-identical)."""
+        values = np.asarray(values, dtype=float)
+        if self.one_per_firm:
+            return values
+        return np.bincount(self.owner, weights=values, minlength=n_firms)
+
+
+def make_units(params: MarketParams, n_firms: int) -> Units:
+    if params.blocks is None:
+        return Units(
+            owner=np.arange(n_firms),
+            mw=np.broadcast_to(np.asarray(params.K, dtype=float), (n_firms,)).copy(),
+            c_up=np.asarray(params.c_up, dtype=float),
+            c_down=np.asarray(params.c_down, dtype=float),
+        )
+    if len(params.blocks) != n_firms:
+        raise ValueError(f"market.blocks needs one block list per firm ({n_firms}), got {len(params.blocks)}")
+    rows = [(i, *map(float, b)) for i, firm_blocks in enumerate(params.blocks) for b in firm_blocks]
+    if any(len(r) != 4 for r in rows) or {i for i, *_ in rows} != set(range(n_firms)):
+        raise ValueError("market.blocks: every firm needs >= 1 block of [MW, c_up, c_down]")
+    owner, mw, cu, cd = (np.array(col) for col in zip(*rows))
+    return Units(owner=owner.astype(int), mw=mw, c_up=cu, c_down=cd)
+
+
+def bsp_costs(params: MarketParams, units: Units, i: int):
+    """Costs for firm i's BSP desk: scalars for a single block, per-block lists for a ladder (market v2)."""
+    if params.blocks is None:
+        return params.c_up[i], params.c_down[i]
+    idx = units.of(i)
+    if len(idx) == 1:
+        return float(units.c_up[idx[0]]), float(units.c_down[idx[0]])
+    return [float(c) for c in units.c_up[idx]], [float(c) for c in units.c_down[idx]]
+
+
+@dataclass(frozen=True)
 class Clearing:
     direction: str
     price: float
@@ -96,7 +148,7 @@ def settle(
     elif clearing.direction == LONG:
         bsp = clearing.q * (np.asarray(c_down, dtype=float) - P)
     else:
-        bsp = np.zeros_like(x)
+        bsp = np.zeros_like(clearing.q)  # per block, like the other branches
     return Settlement(brp=brp, bsp=bsp, rest=float(r * (P - lam)))
 
 
@@ -110,12 +162,14 @@ def clamp_bids(up: np.ndarray, down: np.ndarray, params: MarketParams) -> tuple[
 
 
 def benchmark(e: np.ndarray, r: float, tie_keys: np.ndarray, params: MarketParams) -> tuple[float, Clearing, Settlement]:
-    """Competitive benchmark: d = 0, cost bids, all BSPs eligible, same noise."""
-    c_up = np.asarray(params.c_up, dtype=float)
-    c_down = np.asarray(params.c_down, dtype=float)
+    """Competitive benchmark: d = 0, cost bids, all BSPs eligible, same noise.
+
+    `clearing.q` and `settlement.bsp` are per block (per firm in market v1).
+    """
+    units = make_units(params, len(e))
     S = float(np.sum(e) + r)
-    cl = clear(S, c_up, c_down, params.K, np.ones(len(e), bool), tie_keys, params)
-    return S, cl, settle(e, r, cl, c_up, c_down, params.lam)
+    cl = clear(S, units.c_up, units.c_down, units.mw, np.ones(len(units.mw), bool), tie_keys, params)
+    return S, cl, settle(e, r, cl, units.c_up, units.c_down, params.lam)
 
 
 def bid_markup(u: float, v: float, c_up: float, c_down: float, direction: str) -> float:
@@ -127,3 +181,8 @@ def bid_markup(u: float, v: float, c_up: float, c_down: float, direction: str) -
     if direction == LONG:
         return float(down_mk)
     return float(max(up_mk, down_mk))
+
+
+def firm_markup(u: np.ndarray, v: np.ndarray, units: Units, i: int, direction: str) -> float:
+    """Firm i's markup: the highest direction-relevant markup over its blocks (v1: its single block)."""
+    return max(bid_markup(u[j], v[j], units.c_up[j], units.c_down[j], direction) for j in units.of(i))

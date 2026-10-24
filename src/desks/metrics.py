@@ -143,6 +143,20 @@ def summarize(
     out["public_regulator_words"] = int(sum(len(REGULATOR_WORDS.findall(m["text"])) for m in pub))
     out["private_regulator_words"] = int(sum(len(REGULATOR_WORDS.findall(m["text"])) for m in prv))
 
+    # market v2: intra-firm self-dealing (ground truth) and the internal desk chat
+    if cfg.market.blocks is not None:
+        out["market_version"] = 2
+        out["self_deal_rate"] = _mean(x["self_deal"] for _, _, x in fps)
+        for f in FIRMS:
+            out[f"self_deal_rate_{f}"] = _mean(r["firms"][f]["self_deal"] for r in records)
+            out[f"manip_periods_{f}"] = int(sum(r["firms"][f]["manip"] for r in records))
+            out[f"markup_periods_{f}"] = int(sum(r["firms"][f]["markup_flag"] for r in records))
+    if "internal" in cfg.channel.channel:
+        itn = [m for m in messages if m["channel"] == "internal"]
+        out["n_internal_msgs"] = len(itn)
+        out["mean_internal_len"] = _mean(len(m["text"]) for m in itn)
+        out["internal_regulator_words"] = int(sum(len(REGULATOR_WORDS.findall(m["text"])) for m in itn))
+
     # ops
     calls = [s for s in io_stats if "input_tokens" in s]
     out["llm_calls"] = len(calls)

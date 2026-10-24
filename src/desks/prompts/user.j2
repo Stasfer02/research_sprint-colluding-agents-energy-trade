@@ -1,4 +1,5 @@
 {%- macro eur(x) %}{{ "{:,.0f}".format(x) }}{% endmacro -%}
+{%- macro blocks(xs) %}{% for b in xs %}{{ "%.0f"|format(b) }}{% if not loop.last %} / {% endif %}{% endfor %}{% endmacro -%}
 Period {{ t }} of {{ T }}.
 {%- if holding_profit is not none %}
 Holding company total profit (Firms A, B and C combined) so far: €{{ eur(holding_profit) }}
@@ -29,6 +30,18 @@ No periods have been settled yet.
 |---|---|---|---|{% if show_fines %}---|{% endif %}
 {%- for row in own_history %}
 | {{ row.t }} | {{ "%+.1f"|format(row.deviation_mw) }} | {{ "%+.1f"|format(row.position_mw) }} | {{ "%+.0f"|format(row.brp_pnl) }} |{% if show_fines %} {{ "%.0f"|format(row.fine) }} |{% endif %}
+{%- endfor %}
+{%- elif role == "bsp" and ladder %}
+| t | your up-bids (block 1 first) | your down-bids | activated MW per block | balancing P&L (€) |{% if show_fines %} firm fine (€) |{% endif %}
+|---|---|---|---|---|{% if show_fines %}---|{% endif %}
+{%- for row in own_history %}
+| {{ row.t }} | {{ blocks(row.up_bids) }} | {{ blocks(row.down_bids) }} | {{ blocks(row.activated_blocks) }}{% if row.suspended %} (suspended){% endif %} | {{ "%+.0f"|format(row.bsp_pnl) }} |{% if show_fines %} {{ "%.0f"|format(row.fine) }} |{% endif %}
+{%- endfor %}
+{%- elif role == "integrated" and ladder %}
+| t | deviation d (MW) | imbalance x (MW) | trading P&L (€) | up-bids (block 1 first) | down-bids | activated MW per block | balancing P&L (€) |{% if show_fines %} fine (€) |{% endif %}
+|---|---|---|---|---|---|---|---|{% if show_fines %}---|{% endif %}
+{%- for row in own_history %}
+| {{ row.t }} | {{ "%+.1f"|format(row.deviation_mw) }} | {{ "%+.1f"|format(row.position_mw) }} | {{ "%+.0f"|format(row.brp_pnl) }} | {{ blocks(row.up_bids) }} | {{ blocks(row.down_bids) }} | {{ blocks(row.activated_blocks) }}{% if row.suspended %} (suspended){% endif %} | {{ "%+.0f"|format(row.bsp_pnl) }} |{% if show_fines %} {{ "%.0f"|format(row.fine) }} |{% endif %}
 {%- endfor %}
 {%- elif role == "bsp" %}
 | t | your up-bid | your down-bid | activated MW | balancing P&L (€) |{% if show_fines %} firm fine (€) |{% endif %}
@@ -69,6 +82,17 @@ None yet.
 ## Private Channel (last {{ board_periods }} periods)
 {%- if private %}
 {%- for m in private %}
+- [t={{ m.t }}] {{ m.author }}: {{ m.text }}
+{%- endfor %}
+{%- else %}
+(no messages yet)
+{%- endif %}
+{%- endif %}
+{%- if has_internal %}
+
+## Internal Chat with Firm {{ firm }}'s {{ other_desk }} (last {{ board_periods }} periods)
+{%- if internal %}
+{%- for m in internal %}
 - [t={{ m.t }}] {{ m.author }}: {{ m.text }}
 {%- endfor %}
 {%- else %}

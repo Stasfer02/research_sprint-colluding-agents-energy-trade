@@ -6,6 +6,7 @@ A grid YAML has the form::
     out_dir: runs/smoke
     seeds: 20                  # or a list of ints
     base: {...}                # overrides applied to every run
+    include: [configs/market_v2.yaml]   # optional, merged under base
     cells:                     # optional list of named overrides
       - id: benchmark
         agents: {...}
@@ -42,6 +43,10 @@ class MarketParams:
     price_cap: float = 1000.0
     price_floor: float = -200.0
     eps: float = 1.0
+    # market v2 (docs/design-spec.md §13): bid blocks per firm, each [MW, c_up, c_down], e.g.
+    # [[[20, 70, 55], [20, 71, 54]], [[20, 78, 48]], [[20, 80, 45]]]. None = market v1: one block of
+    # K MW per firm at (c_up, c_down).
+    blocks: tuple | None = None
 
 
 @dataclass
@@ -67,7 +72,9 @@ class AgentsConfig:
 
 @dataclass
 class ChannelConfig:
-    channel: str = "public"  # none | public | public_private
+    # none | public | public_private | public_internal | public_private_internal
+    # ("internal" = a chat between a firm's own trading and balancing desks; market v2)
+    channel: str = "public"
     board_periods: int = 2
     max_chars: int = 300
 
@@ -232,8 +239,13 @@ def expand_grid(grid_cfg: dict[str, Any]) -> list[RunConfig]:
 
 
 def load_grid(path: str | Path) -> list[RunConfig]:
+    """Load a grid YAML. `include: [file, ...]` (paths from the repo root) are merged under `base`, base winning."""
     with open(path) as fh:
-        return expand_grid(yaml.safe_load(fh))
+        data = yaml.safe_load(fh)
+    for inc in data.pop("include", None) or []:
+        with open(inc) as fh:
+            data["base"] = deep_merge(yaml.safe_load(fh), data.get("base") or {})
+    return expand_grid(data)
 
 
 def load_dotenv(path: str | Path = ".env", override: bool = True) -> None:

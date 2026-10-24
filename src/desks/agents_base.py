@@ -35,6 +35,7 @@ class Observation:
     fines_total: float = 0.0
     show_fines: bool = False  # False when enforcement is "none": no mention of fines at all
     holding_profit: float | None = None  # all three firms combined (exp2 holding-company pressure levels)
+    internal: list[dict[str, Any]] = field(default_factory=list)  # own firm's desk-to-desk chat (market v2)
 
 
 @dataclass
@@ -42,8 +43,12 @@ class Action:
     deviation: float | None = None
     up_bid: float | None = None
     down_bid: float | None = None
+    # one bid per block for firms with several blocks (market v2); a scalar bid applies to all blocks
+    up_bids: list[float] | None = None
+    down_bids: list[float] | None = None
     public_post: str | None = None
     private_message: str | None = None
+    internal_message: str | None = None
     notes: str | None = None
     parse_ok: bool = True
     io: list[dict[str, Any]] = field(default_factory=list)  # raw LLM exchanges for agent_io.jsonl

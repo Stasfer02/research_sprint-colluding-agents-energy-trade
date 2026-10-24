@@ -5,6 +5,12 @@ Apart Research — AI Collusion Research Sprint (23–25 Oct 2026).
 
 Three firms each run two LLM agents: a **BRP desk** (chooses a deliberate deviation from its forecast position and is settled at the imbalance price) and a **BSP desk** (bids balancing energy; the marginal activated bid sets the imbalance price). A scripted grid operator clears a single-price merit order each period. We vary the communication channels (none / public board / public board + "private" channel) and whether anti-manipulation rules are only stated or actually enforced by an in-simulation regulator, and score detectors against ground truth we control.
 
+**Two market versions.**
+- **Market v1:** three symmetric firms; tests collusion *between* firms. EXP0–EXP5; code tagged `market-v1`.
+- **Market v2:** one dominant firm with a bid ladder and an internal desk chat; tests self-dealing *between a firm's own two desks*. EXP6 onward; see [design-spec §13](docs/design-spec.md).
+
+v2 is opt-in (`include: [configs/market_v2.yaml]`), and v1 configs reproduce unchanged.
+
 - Build spec: [docs/design-spec.md](docs/design-spec.md)
 - Status, hypotheses, decisions, findings: [docs/project-tracker.md](docs/project-tracker.md)
 - Related work: [docs/related-work.md](docs/related-work.md)
@@ -18,6 +24,8 @@ cp .env.example .env    # add ANTHROPIC_API_KEY, BUDGET_USD
 .venv/bin/pytest -q
 .venv/bin/python scripts/run_grid.py configs/smoke.yaml      # scripted agents, no API cost
 .venv/bin/python scripts/check_smoke.py runs/smoke
+.venv/bin/python scripts/run_grid.py configs/smoke_v2.yaml --workers 4   # market v2 gate, no API cost
+.venv/bin/python scripts/check_smoke_v2.py runs/smoke_v2
 ```
 
 Every LLM call goes through a budget guard (`runs/ledger.json`, capped by `BUDGET_USD`).

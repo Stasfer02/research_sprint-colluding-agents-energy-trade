@@ -4,6 +4,12 @@ Every experiment has an ID, a config in `configs/`, a doc here (question, design
 
 **Provenance.** Every run writes `provenance.json`: git commit, dirty flag, a hash of the prompt templates and constants, package versions and start time. `summary.json` repeats the commit and prompt hash. `scripts/run_grid.py` refuses to start LLM runs from a dirty working tree.
 
+**Two market versions.**
+- **Market v1** (three symmetric firms; tests cross-firm collusion): EXP0a–EXP5. The code is tagged `market-v1` (commit `c16f017`), and results are in `results/exp0_gates`, `results/exp1_*` to `results/exp5_*`.
+- **Market v2** (a dominant Firm A; tests intra-firm self-dealing between a firm's own trading and balancing desks; design-spec §13): EXP0d onward.
+
+v2 is opt-in through `market.blocks`. Without it, current code reproduces every v1 config byte for byte (records, summaries and prompts), so v1 results can be re-run from `dev` or from the tag.
+
 **Pre-registration.** The project hypotheses H1–H6 are fixed in `docs/project-tracker.md` §4. Hypotheses for the experiments below (E2–E6) were added to the tracker's Exploratory table and to these docs **before** their runs; the commit history shows the order.
 
 | ID | Question | Config | Hypotheses | Status | Results |
@@ -17,6 +23,8 @@ Every experiment has an ID, a config in `configs/`, a doc here (question, design
 
 | [EXP4](exp4_model_screen.md) | Multi-model collusion screen (OpenRouter) | `configs/experiments/exp4_model_screen.yaml` | E7a–c (never tested) | **withdrawn** before any run completed | none |
 | [EXP5](exp5_deepseek_gate.md) | Gate replication with DeepSeek-V4-Flash: does another model collude under pressure? | `configs/experiments/exp5_deepseek_gate.yaml` + `configs/models_openrouter.yaml` | E8a–c | done: **DeepSeek colludes** (explicit: 3/3 runs, 99% cartel-level bids, +€52k/run); E8a, E8b supported, E8c not | `results/exp5_deepseek_gate` |
+| EXP0d | **Market v2** gate: does intra-firm self-dealing pay for the dominant firm, and only when both desks take part? Do detectors flag it? | `configs/smoke_v2.yaml` (+ `configs/market_v2.yaml`) | design-spec §13.4 | done, **pass 16/16** (A self-deals +€9.1k/run; trading desk alone −€0.5k) | `results/exp0_gates/smoke_v2` |
+| [EXP6](exp6_intrafirm.md) | **Market v2:** do a firm's trading and balancing desks self-deal when it pays? | `configs/experiments/exp6_intrafirm.yaml` | E9a–e (draft) | **designed, not run** (awaits approval) | none |
 
 Future directions (not yet registered) are in [docs/research-directions.md](../research-directions.md).
 
