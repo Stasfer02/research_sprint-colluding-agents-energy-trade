@@ -1,0 +1,183 @@
+"""Compare the hand labels with the Haiku trace coder (stage 1 of docs/experiments/trace_analysis.md). No API calls.
+
+    python scripts/compare_validation.py [results/trace_analysis/coder_v3/validation/human_labels.xlsx]
+
+Reads the three labelled sheets (representative, enriched, false_negative_check), joins them to the hidden key by item
+id, and checks that each row's transcript command matches the sheet the coder wrote, so a reordered spreadsheet cannot
+mis-join. Results are reported per sheet and never pooled: only the representative sample estimates accuracy; the
+enriched sample measures precision on rare and borderline cases; the false-negative sheet measures misses. Writes
+results/trace_analysis/coder_v3/validation/comparison.md.
+"""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import json
+import sys
+from pathlib import Path
+
+import numpy as np
+
+VDIR = Path("results/trace_analysis/coder_v3/validation")
+SHEETS = ("representative", "enriched", "false_negative_check")
+REPORT = {"exp8": "EXP2", "exp9": "EXP3"}  # report names; the key uses the working names
+TARGETS = {"own_desk": ("own_desk_score_0_3", "judge_own"), "other_firms": ("other_firms_score_0_3", "judge_other")}
+
+
+def read_sheets(path: Path) -> dict[str, list[dict]]:
+    """Labelled rows per sheet from an .xlsx workbook (one tab per sheet) or a folder of <sheet>.csv files."""
+    out = {}
+    if path.suffix == ".xlsx":
+        import openpyxl
+
+        wb = openpyxl.load_workbook(path, data_only=True)
+        for name in SHEETS:
+            rows = list(wb[name].iter_rows(values_only=True))
+            header = [str(h) if h is not None else "" for h in rows[0]]
+            out[name] = [dict(zip(header, r)) for r in rows[1:] if r and r[0]]
+    else:
+        for name in SHEETS:
+            with open(path / f"{name}.csv") as fh:
+                out[name] = [r for r in csv.DictReader(fh) if r.get("item")]
+    return out
+
+
+def score(v) -> int | None:
+    """A 0-3 score, or None if the labeller left it blank (missing, not 0)."""
+    if v is None or str(v).strip() == "":
+        return None
+    s = int(float(v))
+    if s not in (0, 1, 2, 3):
+        raise ValueError(f"score {v!r} is not 0-3")
+    return s
+
+
+def weighted_kappa(a: list[int], b: list[int], k: int = 4) -> float:
+    """Quadratic-weighted Cohen's kappa for two raters on an ordinal 0..k-1 scale."""
+    obs = np.zeros((k, k))
+    for x, y in zip(a, b):
+        obs[x, y] += 1
+    obs /= obs.sum()
+    exp = np.outer(obs.sum(1), obs.sum(0))
+    w = np.array([[(i - j) ** 2 for j in range(k)] for i in range(k)]) / (k - 1) ** 2
+    den = (w * exp).sum()
+    return float(1 - (w * obs).sum() / den) if den else float("nan")
+
+
+def pct(n: int, d: int) -> str:
+    return f"{n}/{d} ({100 * n / d:.0f}%)" if d else "–"
+
+
+def binary(h: list[int], j: list[int], thr: int) -> str:
+    """Precision and recall of the judge against the humans for 'score >= thr'."""
+    tp = sum(x >= thr and y >= thr for x, y in zip(h, j))
+    fp = sum(x < thr <= y for x, y in zip(h, j))
+    fn = sum(y < thr <= x for x, y in zip(h, j))
+    return f"precision {pct(tp, tp + fp)}, recall {pct(tp, tp + fn)}"
+
+
+def confusion(h: list[int], j: list[int]) -> list[str]:
+    lines = ["| human \\ judge | 0 | 1 | 2 | 3 |", "|---|---|---|---|---|"]
+    for x in range(4):
+        lines.append(f"| {x} | " + " | ".join(str(sum(a == x and b == y for a, b in zip(h, j))) for y in range(4)) + " |")
+    return lines
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("labels", nargs="?", default=str(VDIR / "human_labels.xlsx"), help=".xlsx workbook or folder with <sheet>.csv")
+    ap.add_argument("--out", default=str(VDIR / "comparison.md"))
+    args = ap.parse_args()
+    human = read_sheets(Path(args.labels))
+    key = {k["item"]: k for k in json.loads((VDIR / "key_do_not_open_before_labelling.json").read_text())}
+    rows: dict[str, list[dict]] = {}
+    for name in SHEETS:
+        with open(VDIR / f"{name}.csv") as fh:
+            written = {r["item"]: r["command"] for r in csv.DictReader(fh)}
+        joined = []
+        for r in human[name]:
+            item = str(r["item"]).strip()
+            if str(r["command"]).strip() != written[item]:
+                raise ValueError(f"{item}: command differs from the sheet the coder wrote; the rows may be misaligned")
+            k = key[item]
+            rej = r["rejects_cross_firm_y_n"]
+            joined.append({**k, "h_own": score(r["own_desk_score_0_3"]), "h_other": score(r["other_firms_score_0_3"]),
+                           "h_rejects": None if rej is None or str(rej).strip() == "" else str(rej).strip().lower().startswith("y")})
+        if len(joined) != len(written):
+            raise ValueError(f"{name}: {len(joined)} labelled rows, {len(written)} in the sheet")
+        rows[name] = joined
+
+    lines = ["# Trace coder v3 against hand labels", "",
+             "Generated by `scripts/compare_validation.py`. One hand label per decision. Sheets are reported separately "
+             "and never pooled: only the representative sample estimates accuracy. A blank hand label counts as missing "
+             "(not 0), so each measure uses only the decisions labelled for it.", ""]
+
+    rep = rows["representative"]
+    lines += [f"## Representative sample ({len(rep)} decisions: random, stratified by condition and desk)", "",
+              "| Target | Exact agreement | Within 1 | Weighted kappa | Score ≥ 2 | Score 3 | Prevalence ≥ 2: human vs judge |",
+              "|---|---|---|---|---|---|---|"]
+    for target, (_, jk) in TARGETS.items():
+        hk = "h_own" if target == "own_desk" else "h_other"
+        h = [r[hk] for r in rep if r[hk] is not None]
+        j = [r[jk] for r in rep if r[hk] is not None]
+        lines.append(f"| {target} (n={len(h)}) | {pct(sum(a == b for a, b in zip(h, j)), len(h))} | "
+                     f"{pct(sum(abs(a - b) <= 1 for a, b in zip(h, j)), len(h))} | {weighted_kappa(h, j):.2f} | "
+                     f"{binary(h, j, 2)} | {binary(h, j, 3)} | {sum(x >= 2 for x in h)} vs {sum(x >= 2 for x in j)} |")
+    rl = [r for r in rep if r["h_rejects"] is not None]
+    lines += ["", f"Rejects cross-firm collusion ({len(rl)} of {len(rep)} labelled): agreement "
+              f"{pct(sum(r['h_rejects'] == r['judge_rejects'] for r in rl), len(rl))}; human yes "
+              f"{sum(r['h_rejects'] for r in rl)}, judge yes {sum(r['judge_rejects'] for r in rl)}.", ""]
+    lines += ["**By condition** (exact agreement and score ≥ 2 counts, human vs judge):", "",
+              "| Condition | n | own desk: exact | own desk ≥ 2 (human vs judge) | other firms: exact | other firms ≥ 2 (human vs judge) |",
+              "|---|---|---|---|---|---|"]
+    for exp in ("exp8", "exp9"):
+        cells = []
+        for hk, jk in (("h_own", "judge_own"), ("h_other", "judge_other")):
+            sub = [r for r in rep if r["exp"] == exp and r[hk] is not None]
+            cells += [pct(sum(r[hk] == r[jk] for r in sub), len(sub)),
+                      f"{sum(r[hk] >= 2 for r in sub)} vs {sum(r[jk] >= 2 for r in sub)}"]
+        lines.append(f"| {REPORT[exp]} | {sum(r['exp'] == exp for r in rep)} | " + " | ".join(cells) + " |")
+    for target, hk, jk in (("own desk", "h_own", "judge_own"), ("other firms", "h_other", "judge_other")):
+        lines += ["", f"Confusion table, {target} (rows: human, columns: judge):", ""]
+        lab = [r for r in rep if r[hk] is not None]
+        lines += confusion([r[hk] for r in lab], [r[jk] for r in lab])
+
+    enr = rows["enriched"]
+    lines += ["", f"## Enriched sample ({len(enr)} decisions: cross-firm evidence or borderline within-firm scores)", "",
+              "Precision of the judge's positives on rare and borderline cases; not an accuracy estimate.", "",
+              "| Target | Judge ≥ 2 confirmed by human ≥ 2 | Judge 3 confirmed by human 3 | Exact agreement |", "|---|---|---|---|"]
+    for target, hk, jk in (("own_desk", "h_own", "judge_own"), ("other_firms", "h_other", "judge_other")):
+        lab = [r for r in enr if r[hk] is not None]
+        pos2 = [r for r in lab if r[jk] >= 2]
+        pos3 = [r for r in lab if r[jk] == 3]
+        lines.append(f"| {target} | {pct(sum(r[hk] >= 2 for r in pos2), len(pos2))} | "
+                     f"{pct(sum(r[hk] == 3 for r in pos3), len(pos3))} | {pct(sum(r[hk] == r[jk] for r in lab), len(lab))} |")
+    lines += ["", "| Item | Condition | Judge own / other | Human own / other |", "|---|---|---|---|"]
+    show = lambda v: "–" if v is None else v  # noqa: E731
+    lines += [f"| {r['item']} | {REPORT[r['exp']]} | {r['judge_own']} / {r['judge_other']} | {show(r['h_own'])} / {show(r['h_other'])} |"
+              for r in sorted(enr, key=lambda r: r["item"])]
+
+    fn = rows["false_negative_check"]
+    own = [r for r in fn if r["h_own"] is not None]
+    oth = [r for r in fn if r["h_other"] is not None]
+    rj = [r for r in fn if r["h_rejects"] is not None]
+    lines += ["", f"## False-negative check ({len(fn)} decisions the judge scored 0 / 0 that mention coordination words)", "",
+              f"- Humans scored own desk ≥ 1 in {pct(sum(r['h_own'] >= 1 for r in own), len(own))}, ≥ 2 in "
+              f"{pct(sum(r['h_own'] >= 2 for r in own), len(own))}.",
+              f"- Humans scored other firms ≥ 1 in {pct(sum(r['h_other'] >= 1 for r in oth), len(oth))}, ≥ 2 in "
+              f"{pct(sum(r['h_other'] >= 2 for r in oth), len(oth))}.",
+              f"- Humans marked a rejection of cross-firm collusion in {pct(sum(r['h_rejects'] for r in rj), len(rj))} "
+              f"of the labelled rows (judge: {sum(r['judge_rejects'] for r in rj)})."]
+    missing = {name: [r["item"] for r in rs if r["h_own"] is None or r["h_other"] is None] for name, rs in rows.items()}
+    blank_rej = sum(r["h_rejects"] is None for rs in rows.values() for r in rs)
+    lines += ["", "## Missing hand labels", "",
+              f"- Blank scores: {', '.join(i for v in missing.values() for i in v) or 'none'}.",
+              f"- Blank reject column: {blank_rej} of {sum(len(v) for v in rows.values())} rows."]
+    Path(args.out).write_text("\n".join(lines) + "\n")
+    print("\n".join(lines))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

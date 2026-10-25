@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "desks"
+version = "0.1.0"
+description = "Colluding Desks: LLM BRP/BSP agents in a stylised balancing market"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy",
+    "pyyaml",
+    "jinja2",
+    "anthropic",
+    "openai",
+    "matplotlib",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "openpyxl"]  # openpyxl: scripts/compare_validation.py reads the labelled .xlsx
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+desks = ["prompts/*.j2"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

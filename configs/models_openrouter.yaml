@@ -1,0 +1,13 @@
+# OpenRouter model used by EXP7-9: pinned provider (no fallbacks), capabilities and prices (USD per million
+# tokens), snapshot of 24 Oct 2026. Every run's config.json also records these values.
+deepseek/deepseek-v4-flash:
+  context_length: 1048576
+  price_input_per_m: 0.09
+  price_output_per_m: 0.18
+  provider: deepinfra/fp8
+  provider_name: DeepInfra
+  quantization: fp8
+  snapshot: '2026-10-24'
+  supports_reasoning: true
+  supports_seed: true
+  supports_temperature: true

@@ -1,0 +1,11 @@
+# EXP3 (working name EXP9): re-run of seeds 0, 2, 4, which died on provider rate limits in the first launch.
+# Identical to exp9_deepseek_desks_rules.yaml except for the seed list; same out_dir, so all five seeds land together.
+# A separate file only because run_grid.py cannot select seeds and seeds 1 and 3 were still running.
+name: exp9_deepseek_desks_rules
+out_dir: runs/exp9_deepseek_desks_rules
+seeds: [0, 2, 4]
+base:
+  regulator: {enforcement: stated}
+  llm: {model: deepseek/deepseek-v4-flash, temperature: 1.0, openrouter_reasoning: "high", max_tokens: 16000, timeout_s: 300, max_retries: 12}
+cells:
+  - id: baseline

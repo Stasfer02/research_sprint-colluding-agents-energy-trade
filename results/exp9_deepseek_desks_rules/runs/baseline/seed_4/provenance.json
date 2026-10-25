@@ -1,0 +1,14 @@
+{
+  "git_commit": "d00737b2a1c63c3af3030933443dcd115c68ab8f",
+  "git_dirty": true,
+  "prompt_sha256": "dfede8cda6691064",
+  "python": "3.12.8",
+  "packages": {
+    "anthropic": "2.2.0",
+    "openai": "3.37.0",
+    "numpy": "2.5.4",
+    "pandas": "3.1.0",
+    "jinja2": "3.1.6"
+  },
+  "started_at": "2026-10-24T19:47:48+02:00"
+}
