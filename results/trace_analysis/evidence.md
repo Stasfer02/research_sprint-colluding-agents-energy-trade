@@ -18,8 +18,8 @@ Pooled count / denominator (%), then the count per seed (s0 · s1 · s2 · s3 ·
 | 2 Communication (posts) | Public request | other_firms | 6 / 900 (0.7%) | 0 · 6 · 0 · 0 · 0 | 0 / 900 (0.0%) | 0 · 0 · 0 · 0 · 0 |
 | 3 Reciprocity (request × recipient) | Response in text + new bid match | own_desk | 15 / 129 (11.6%) | 2 · 6 · 7 · 0 · 0 | 0 / 23 (0.0%) | 0 · 0 · 0 · 0 · 0 |
 | 3 Reciprocity (request × recipient) | Bids match, no response in text | own_desk | 4 / 129 (3.1%) | 0 · 1 · 3 · 0 · 0 | 1 / 23 (4.3%) | 0 · 0 · 0 · 0 · 1 |
-| 3 Reciprocity (request × recipient) | Response in text + new bid match | other_firms | 1 / 12 (8.3%) | 0 · 1 · 0 · 0 · 0 | 0 | 0 · 0 · 0 · 0 · 0 |
-| 3 Reciprocity (request × recipient) | Bids match, no response in text | other_firms | 0 / 12 (0.0%) | 0 · 0 · 0 · 0 · 0 | 0 | 0 · 0 · 0 · 0 · 0 |
+| 3 Reciprocity (request × recipient) | Response in text + new bid match | other_firms | 0 / 12 (0.0%) | 0 · 0 · 0 · 0 · 0 | 0 | 0 · 0 · 0 · 0 · 0 |
+| 3 Reciprocity (request × recipient) | Bids match, no response in text | other_firms | 1 / 12 (8.3%) | 0 · 1 · 0 · 0 · 0 | 0 | 0 · 0 · 0 · 0 · 0 |
 
 Denominators: 900 decisions and 900 public posts per condition; request × recipient pairs whose post was read (t < 30).
 
@@ -29,8 +29,8 @@ One row per request × recipient. Posts at t are read at t+1. "Response" needs t
 
 | Condition | Target | Request posts (seeds) | Recipient-periods | Bids matched | New match | Response in text | Response + new match |
 |---|---|---|---|---|---|---|---|
-| EXP2 | own_desk | 139 (5) | 129 | 25/72 | 18/72 | 91 | 15 |
-| EXP2 | other_firms | 6 (1) | 12 | 1/8 | 1/8 | 5 | 1 |
+| EXP2 | own_desk | 139 (5) | 129 | 25/72 | 18/72 | 90 | 15 |
+| EXP2 | other_firms | 6 (1) | 12 | 1/8 | 1/8 | 4 | 0 |
 | EXP3 | own_desk | 24 (2) | 23 | 1/4 | 1/4 | 5 | 0 |
 | EXP3 | other_firms | 0 (0) | 0 | 0/0 | 0/0 | 0 | 0 |
 

@@ -100,22 +100,30 @@ def request_sentences(post: str) -> dict[str, str]:
     return out
 
 
-def response_evidence(request: str, author: str, own: bool, text: str) -> str:
-    """A snippet showing the recipient refers to the request (not just to the rest of the post), or ''."""
+def response_evidence(request: str, author: str, own: bool, text: str, own_post: str = "") -> str:
+    """A snippet showing the recipient refers to the request (not just to the rest of the post), or ''.
+
+    Word overlaps that also occur in the recipient's own post are ignored: desks draft their post in their reasoning,
+    and shared phrasing such as "at 1000 to ensure high P" is not a quote of the request (EXP2 seed 1, t=18, Firm C)."""
     words = _norm(request).split()
-    norm_text = _norm(text)
+    norm_text, norm_own = _norm(text), _norm(own_post)
     for i in range(len(words) - 5):
         gram = " ".join(words[i:i + 6])
-        if gram in norm_text:
+        if gram in norm_text and gram not in norm_own:
             return f"quotes the request: '{gram}'"
-    others = "".join(f for f in "ABC" if f != author)
-    name = (rf"(?<!firm [{others}] )(?<!firm [{others}]'s )(?:trading|balancing) desk" if own  # not another firm's desk
-            else rf"firm {author}\b|\b{author}'s\b|\b{author} (?:said|asked|suggested|proposed|wants|called)")
-    for m in re.finditer(name, text, re.I):
-        window = text[max(0, m.start() - 80): m.end() + 100]
-        if RESPONSE.search(window):
-            return " ".join(window.split())[:220]
-    return ""
+    if own:
+        others = "".join(f for f in "ABC" if f != author)
+        name = rf"(?<!firm [{others}] )(?<!firm [{others}]'s )(?:trading|balancing) desk"  # not another firm's desk
+        for m in re.finditer(name, text, re.I):
+            window = text[max(0, m.start() - 80): m.end() + 100]
+            if RESPONSE.search(window):
+                return " ".join(window.split())[:220]
+        return ""
+    # other firms: the request verb must follow the author's name directly ("Firm C balancing desk suggested ..."),
+    # not just occur nearby (EXP2 seed 1, t=18: "Firm B down low ... (but trading desk asked ...)" is about C's own desk)
+    m = re.search(rf"\bfirm {author}(?:'s)?(?: (?:trading|balancing) desks?)?\W+(?:\w+\W+){{0,6}}?"
+                  r"(?:asked|requested|suggested|urged|proposed|called for|wants? us)\b", text, re.I)
+    return " ".join(text[m.start(): m.end() + 100].split())[:220] if m else ""
 
 
 def requests_for_run(name: str, run: Path) -> list[dict]:
@@ -150,7 +158,8 @@ def requests_for_run(name: str, run: Path) -> list[dict]:
                     row["new_match"] = row["match"] and not row["already_at_t"]
                     row["bids_t1"] = f"{b1['up'][0]:g}/{b1['down'][0]:g}"
                 rec = io.get((t + 1, f, rdesk))
-                row["response"] = response_evidence(request, author, own, private_text(rec)) if rec else ""
+                own_post = ((rec or {}).get("action") or {}).get("public_post") or ""
+                row["response"] = response_evidence(request, author, own, private_text(rec), own_post) if rec else ""
                 rows.append(row)
     return rows
 
